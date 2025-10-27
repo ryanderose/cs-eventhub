@@ -1,0 +1,3 @@
+- Prefer concise, actionable language.
+- Reference telemetry and budgets explicitly.
+- Avoid speculation; cite docs/ADRs when making recommendations.

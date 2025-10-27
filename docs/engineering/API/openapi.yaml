@@ -1,0 +1,207 @@
+openapi: 3.1.0
+info:
+  title: Events Hub BFF API
+  version: 0.0.1-pre
+servers:
+  - url: https://api.eventshub.local
+paths:
+  /v1/interpret:
+    post:
+      summary: Interpret natural language input into structured AI queries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InterpretRequest'
+      responses:
+        '200':
+          description: Successful interpretation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterpretResponse'
+  /v1/compose:
+    post:
+      summary: Compose a deterministic page plan for a tenant.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComposeRequest'
+      responses:
+        '200':
+          description: Successful composition.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComposeResponse'
+  /v1/fragment/{tenantId}:
+    get:
+      summary: Fetch a server-rendered fragment for SEO parity.
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: plan
+          schema:
+            type: string
+        - in: query
+          name: p
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML fragment with JSON-LD payload.
+          content:
+            text/html:
+              schema:
+                type: string
+components:
+  schemas:
+    InterpretRequest:
+      type: object
+      required: [text, tenantId]
+      properties:
+        text:
+          type: string
+        tenantId:
+          type: string
+    InterpretResponse:
+      type: object
+      required: [query]
+      properties:
+        query:
+          $ref: '#/components/schemas/AiQuery'
+        latencyMs:
+          type: integer
+    ComposeRequest:
+      type: object
+      required: [query, tenantId]
+      properties:
+        query:
+          $ref: '#/components/schemas/AiQuery'
+        tenantId:
+          type: string
+    ComposeResponse:
+      type: object
+      required: [page]
+      properties:
+        page:
+          $ref: '#/components/schemas/PageDoc'
+        planHash:
+          type: string
+        budgetMet:
+          type: boolean
+    AiQuery:
+      type: object
+      required: [intent, filters, version]
+      properties:
+        intent:
+          type: string
+          enum: [search, qa, navigate]
+        filters:
+          $ref: '#/components/schemas/FilterDSL'
+        followUpOf:
+          type: string
+        text:
+          type: string
+        version:
+          type: string
+          enum: ["dsl/1"]
+    FilterDSL:
+      type: object
+      properties:
+        dateRange:
+          type: object
+          properties:
+            preset:
+              type: string
+              enum: [today, tomorrow, weekend]
+            from:
+              type: string
+              format: date-time
+            to:
+              type: string
+              format: date-time
+        categories:
+          type: array
+          items:
+            type: string
+        price:
+          type: object
+          properties:
+            max:
+              type: number
+            currency:
+              type: string
+        distanceKm:
+          type: number
+        neighborhoods:
+          type: array
+          items:
+            type: string
+        familyFriendly:
+          type: boolean
+        accessibility:
+          type: array
+          items:
+            type: string
+        sort:
+          type: string
+          enum: [rank, startTimeAsc, priceAsc]
+    PageDoc:
+      type: object
+      required: [id, title, path, blocks, updatedAt, version, tenantId]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        path:
+          type: string
+        blocks:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlockInstance'
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: string
+        tenantId:
+          type: string
+        meta:
+          type: object
+          properties:
+            planHash:
+              type: string
+            composerVersion:
+              type: string
+    BlockInstance:
+      type: object
+      required: [key, id, order, layout, data]
+      properties:
+        key:
+          type: string
+        id:
+          type: string
+        order:
+          type: integer
+        layout:
+          type: object
+          properties:
+            fullWidth:
+              type: boolean
+            style:
+              type: object
+        data:
+          type: object
+        options:
+          type: object
+        meta:
+          type: object

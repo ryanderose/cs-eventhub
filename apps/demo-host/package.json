@@ -1,0 +1,16 @@
+{
+  "name": "@eventhub/demo-host",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "fastify": "^4.26.2",
+    "@eventhub/embed-sdk": "workspace:*",
+    "@eventhub/page-schema": "workspace:*"
+  }
+}
