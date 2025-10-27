@@ -1,0 +1,55 @@
+{
+  "tools": [
+    {
+      "name": "fetchProviderEvents",
+      "description": "Queries the CitySpark adapter with quota enforcement and caching hints.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filters": {
+            "$ref": "#/definitions/FilterDSL"
+          },
+          "tenantId": {
+            "type": "string"
+          }
+        },
+        "required": ["filters", "tenantId"]
+      }
+    },
+    {
+      "name": "generatePlanUrl",
+      "description": "Encodes a PageDoc plan into a canonical URL with planHash metadata.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "$ref": "#/definitions/PageDoc"
+          }
+        },
+        "required": ["page"]
+      }
+    }
+  ],
+  "definitions": {
+    "FilterDSL": {
+      "type": "object",
+      "properties": {
+        "dateRange": {
+          "type": "object"
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PageDoc": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      }
+    }
+  }
+}

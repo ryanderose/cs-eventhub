@@ -1,0 +1,14 @@
+openapi: 3.1.0
+info:
+  title: Events Hub BFF
+  version: 0.0.1
+paths:
+  /v1/interpret:
+    post:
+      summary: Return DSL filters for natural-language queries.
+  /v1/compose:
+    post:
+      summary: Compose PageDoc payloads from interpreter output.
+  /v1/fragment/{tenantId}:
+    get:
+      summary: Serve strict-CSP HTML fragment for SEO parity.

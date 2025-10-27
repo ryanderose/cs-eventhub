@@ -1,0 +1,35 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**", ".ladle-story/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
+    "dev": {
+      "cache": false
+    },
+    "check:a11y": {
+      "dependsOn": ["build"],
+      "outputs": ["axe-report/**"]
+    },
+    "check:bundles": {
+      "dependsOn": ["build"],
+      "outputs": ["bundle-reports/**"]
+    },
+    "security:sbom": {
+      "dependsOn": ["build"],
+      "outputs": [".sbom/**"]
+    },
+    "security:provenance": {
+      "dependsOn": ["build"],
+      "outputs": ["provenance/**"]
+    }
+  }
+}

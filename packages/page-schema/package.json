@@ -1,0 +1,16 @@
+{
+  "name": "@events-hub/page-schema",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
+  "sideEffects": false,
+  "scripts": {
+    "build": "echo 'build stub'",
+    "test": "echo 'test stub'",
+    "lint": "echo 'lint stub'"
+  },
+  "dependencies": {
+    "zod": "3.22.4"
+  }
+}

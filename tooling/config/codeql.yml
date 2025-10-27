@@ -1,0 +1,6 @@
+name: Events Hub CodeQL
+queries:
+  - uses: security-extended
+paths:
+  - apps
+  - packages

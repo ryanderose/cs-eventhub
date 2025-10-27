@@ -1,0 +1,17 @@
+{
+  "name": "@events-hub/cli",
+  "version": "0.0.0",
+  "bin": {
+    "events-hub": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "echo 'build stub'",
+    "test": "echo 'test stub'",
+    "lint": "echo 'lint stub'"
+  },
+  "dependencies": {
+    "commander": "11.1.0"
+  }
+}
