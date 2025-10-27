@@ -23,16 +23,21 @@ export type CspTemplateOptions = {
   scriptSrc?: string[];
   styleSrc?: string[];
   connectSrc?: string[];
+  styleHashes?: string[];
+  fontSrc?: string[];
 };
 
-export function buildFragmentCsp({ scriptSrc = [], styleSrc = [], connectSrc = [] }: CspTemplateOptions): string {
-  const baseDirectives = [
-    "default-src 'self'",
-    "script-src 'self'" + (scriptSrc.length ? ` ${scriptSrc.join(' ')}` : ''),
-    "style-src 'self'" + (styleSrc.length ? ` ${styleSrc.join(' ')}` : ''),
-    "connect-src 'self'" + (connectSrc.length ? ` ${connectSrc.join(' ')}` : ''),
-    "img-src 'self' data:",
-    "frame-ancestors 'none'"
-  ];
-  return baseDirectives.join('; ');
+export function buildFragmentCsp({ scriptSrc = [], styleSrc = [], connectSrc = [], styleHashes = [], fontSrc = [] }: CspTemplateOptions): string {
+  const directives: string[] = [];
+  directives.push("default-src 'self'");
+  directives.push(["script-src 'self'", ...scriptSrc].join(' '));
+  const styleParts = ["style-src 'self'"].concat(styleHashes.map((hash) => `'${hash}'`)).concat(styleSrc);
+  directives.push(styleParts.join(' '));
+  directives.push(["connect-src 'self'", ...connectSrc].join(' '));
+  directives.push(["font-src 'self'", ...fontSrc].join(' '));
+  directives.push("img-src 'self' data:");
+  directives.push("frame-ancestors 'none'");
+  directives.push("object-src 'none'");
+  directives.push("base-uri 'none'");
+  return directives.join('; ');
 }
