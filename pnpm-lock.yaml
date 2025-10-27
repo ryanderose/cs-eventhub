@@ -102,11 +102,18 @@ importers:
 
   packages/ai-composer:
     dependencies:
+      '@events-hub/data-providers':
+        specifier: workspace:*
+        version: link:../data-providers
       '@events-hub/page-schema':
         specifier: workspace:*
         version: link:../page-schema
 
-  packages/ai-interpreter: {}
+  packages/ai-interpreter:
+    dependencies:
+      zod:
+        specifier: 3.22.4
+        version: 3.22.4
 
   packages/block-registry:
     dependencies:
@@ -144,13 +151,20 @@ importers:
         specifier: 11.1.0
         version: 11.1.0
 
-  packages/data-providers: {}
+  packages/data-providers:
+    dependencies:
+      '@events-hub/page-schema':
+        specifier: workspace:*
+        version: link:../page-schema
 
   packages/embed-sdk:
     dependencies:
       '@events-hub/page-schema':
         specifier: workspace:*
         version: link:../page-schema
+      '@events-hub/router-helpers':
+        specifier: workspace:*
+        version: link:../router-helpers
       '@events-hub/telemetry':
         specifier: workspace:*
         version: link:../telemetry
