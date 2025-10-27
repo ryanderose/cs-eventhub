@@ -1,0 +1,14 @@
+:root {
+  --eh-font: "Inter", system-ui, -apple-system, sans-serif;
+  --eh-color-primary: #3b82f6;
+  --eh-color-surface: #ffffff;
+}
+
+.eh-button {
+  background: var(--eh-color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}

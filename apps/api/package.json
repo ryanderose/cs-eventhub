@@ -1,0 +1,21 @@
+{
+  "name": "@eventhub/api",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "fastify": "^4.26.2",
+    "@fastify/cors": "^9.0.1",
+    "@eventhub/ai-interpreter": "workspace:*",
+    "@eventhub/ai-composer": "workspace:*",
+    "@eventhub/router-helpers": "workspace:*",
+    "@eventhub/page-schema": "workspace:*",
+    "@eventhub/telemetry": "workspace:*",
+    "@opentelemetry/api": "^1.8.0"
+  }
+}

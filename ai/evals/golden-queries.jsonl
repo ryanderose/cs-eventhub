@@ -1,0 +1,2 @@
+{"utterance":"family friendly concerts this weekend","expected_intent":"search","filters":{"dateRange":{"preset":"weekend"},"familyFriendly":true,"categories":["concerts"]}}
+{"utterance":"show me art events near downtown tonight","expected_intent":"search","filters":{"dateRange":{"preset":"today"},"neighborhoods":["downtown"],"categories":["art"]}}

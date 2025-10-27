@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.12
+    ports:
+      - "8123:8123"
+    environment:
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+  metabase:
+    image: metabase/metabase:latest
+    ports:
+      - "3001:3000"
+    depends_on:
+      - clickhouse
+  edge-proxy:
+    image: node:20
+    command: ["node", "msw/server.js"]
+    volumes:
+      - ./msw:/app
+    working_dir: /app
+    ports:
+      - "8080:8080"

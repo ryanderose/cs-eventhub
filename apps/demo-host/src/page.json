@@ -1,0 +1,21 @@
+{
+  "id": "demo",
+  "title": "Events Hub Demo",
+  "path": "/",
+  "blocks": [
+    {
+      "key": "hero",
+      "id": "hero-1",
+      "order": 0,
+      "layout": { "fullWidth": true },
+      "data": {
+        "headline": "Discover what's happening nearby",
+        "subheadline": "Demo data via MSW"
+      }
+    }
+  ],
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "version": "1.5",
+  "tenantId": "demo",
+  "meta": { "planHash": "demo" }
+}

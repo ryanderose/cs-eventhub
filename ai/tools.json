@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "name": "bundle-check",
+      "description": "Verify SDK and block bundle budgets",
+      "command": "pnpm bundle-check"
+    },
+    {
+      "name": "sbom",
+      "description": "Generate SPDX SBOM via tooling/scripts/sbom.mjs",
+      "command": "pnpm sbom"
+    },
+    {
+      "name": "provenance",
+      "description": "Produce SLSA L2 provenance statement",
+      "command": "pnpm provenance"
+    }
+  ]
+}
