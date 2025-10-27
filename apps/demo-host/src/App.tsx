@@ -1,15 +1,25 @@
 import { useEffect, useRef } from 'react';
-import { createEmbed } from '@events-hub/embed-sdk';
+import { create } from '@events-hub/embed-sdk';
+import type { PageDoc } from '@events-hub/page-schema';
 
-const samplePage = {
+const samplePage: PageDoc = {
   id: 'demo',
   title: 'Demo Page',
   path: '/demo',
+  description: 'Sample plan rendered by the embed SDK',
   blocks: [],
   updatedAt: new Date().toISOString(),
   version: '1.5' as const,
   tenantId: 'demo-tenant',
-  meta: { planHash: 'stub' }
+  meta: {
+    planHash: 'stub',
+    composerVersion: 'demo',
+    generatedAt: new Date().toISOString(),
+    locale: 'en-US',
+    cacheTags: [],
+    flags: {}
+  },
+  planCursors: []
 };
 
 export function App() {
@@ -17,12 +27,15 @@ export function App() {
 
   useEffect(() => {
     if (!ref.current) return;
-    const markup = `\n      <section>
-        <h2>${samplePage.title}</h2>
-        <pre>${JSON.stringify(samplePage, null, 2)}</pre>
-      </section>
-    `;
-    const instance = createEmbed({ container: ref.current, markup });
+    const instance = create({
+      container: ref.current,
+      tenantId: samplePage.tenantId,
+      initialPlan: samplePage,
+      theme: {
+        '--eh-color-bg': '#020617',
+        '--eh-color-text': '#e2e8f0'
+      }
+    });
     return () => instance.destroy();
   }, []);
 
