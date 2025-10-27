@@ -5,3 +5,4 @@
 3. Document architecture changes with ADR updates under `docs/engineering/DECISIONS`.
 4. Validate bundle budgets using `pnpm -w check:bundles` and accessibility with `pnpm -w check:a11y`.
 5. Keep SDK Shadow DOM isolation, CSP, and latency budgets intact.
+6. When a package imports code from another workspace package, declare the dependency in `package.json` before pushing so CI and Vite builds resolve modules correctly.
