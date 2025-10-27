@@ -1,4 +1,3 @@
-import { brotliCompressSync, brotliDecompressSync } from 'node:zlib';
 import type { PageDoc } from '@events-hub/page-schema';
 
 type ZstdModule = {
@@ -6,7 +5,13 @@ type ZstdModule = {
   decompress(data: Uint8Array): Uint8Array;
 };
 
+type BrotliModule = {
+  brotliCompressSync(input: Buffer, options?: unknown): Buffer;
+  brotliDecompressSync(input: Buffer): Buffer;
+};
+
 let zstd: ZstdModule | null | undefined;
+let brotli: BrotliModule | null | undefined;
 
 function toBase64UrlBuffer(buffer: Uint8Array) {
   return Buffer.from(buffer)
@@ -60,6 +65,43 @@ function loadZstd(): ZstdModule | null {
   }
 }
 
+function loadBrotli(): BrotliModule | null {
+  if (brotli !== undefined) return brotli;
+  const req: ((id: string) => any) | null = (() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      return Function('return typeof require === "function" ? require : null')();
+    } catch (error) {
+      if (process.env.DEBUG?.includes('router-helpers')) {
+        console.warn('Failed to access require for brotli loader', error);
+      }
+      return null;
+    }
+  })();
+  if (!req) {
+    brotli = null;
+    return brotli;
+  }
+  try {
+    const module = req('node:zlib') as Partial<BrotliModule> | undefined;
+    if (!module?.brotliCompressSync || !module?.brotliDecompressSync) {
+      brotli = null;
+      return brotli;
+    }
+    brotli = {
+      brotliCompressSync: module.brotliCompressSync.bind(module),
+      brotliDecompressSync: module.brotliDecompressSync.bind(module)
+    };
+    return brotli;
+  } catch (error) {
+    if (process.env.DEBUG?.includes('router-helpers')) {
+      console.warn('Falling back to plain encoding for plan encoding', error);
+    }
+    brotli = null;
+    return brotli;
+  }
+}
+
 export function encodePlan(page: PageDoc): string {
   const json = JSON.stringify(page);
   const encoder = loadZstd();
@@ -68,8 +110,12 @@ export function encodePlan(page: PageDoc): string {
     const compressed = encoder.compress(inputBuffer, 3);
     return `z:${toBase64UrlBuffer(compressed)}`;
   }
-  const brotli = brotliCompressSync(inputBuffer, { params: { 1: 5 } });
-  return `b:${toBase64UrlBuffer(brotli)}`;
+  const brotliModule = loadBrotli();
+  if (brotliModule) {
+    const compressed = brotliModule.brotliCompressSync(inputBuffer, { params: { 1: 5 } });
+    return `b:${toBase64UrlBuffer(compressed)}`;
+  }
+  return `p:${toBase64UrlBuffer(inputBuffer)}`;
 }
 
 export function decodePlan(plan: string): PageDoc {
@@ -84,7 +130,11 @@ export function decodePlan(plan: string): PageDoc {
     return JSON.parse(Buffer.from(decompressed).toString('utf8')) as PageDoc;
   }
   if (mode === 'b') {
-    const decompressed = brotliDecompressSync(buffer);
+    const brotliModule = loadBrotli();
+    if (!brotliModule) {
+      throw new Error('Brotli encoded plan provided but brotli module not available');
+    }
+    const decompressed = brotliModule.brotliDecompressSync(buffer);
     return JSON.parse(decompressed.toString('utf8')) as PageDoc;
   }
   return JSON.parse(Buffer.from(buffer).toString('utf8')) as PageDoc;
