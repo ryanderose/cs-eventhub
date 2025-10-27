@@ -17,7 +17,12 @@ export function App() {
 
   useEffect(() => {
     if (!ref.current) return;
-    const instance = createEmbed({ container: ref.current, page: samplePage });
+    const markup = `\n      <section>
+        <h2>${samplePage.title}</h2>
+        <pre>${JSON.stringify(samplePage, null, 2)}</pre>
+      </section>
+    `;
+    const instance = createEmbed({ container: ref.current, markup });
     return () => instance.destroy();
   }, []);
 
