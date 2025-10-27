@@ -1,7 +1,13 @@
 const DISALLOWED_PROTOCOLS = [/^javascript:/iu, /^data:/iu];
 
 export function sanitizeHtml(input: string) {
-  return input.replace(/<script.*?>.*?<\/script>/gisu, "").replace(/on[a-z]+="[^"]*"/giu, "");
+  let previous: string;
+  do {
+    previous = input;
+    input = input.replace(/<script.*?>.*?<\/script>/gisu, "")
+                 .replace(/on[a-z]+="[^"]*"/giu, "");
+  } while (input !== previous);
+  return input;
 }
 
 export function isSafeUrl(url: string) {
