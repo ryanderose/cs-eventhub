@@ -1,5 +1,6 @@
 import { Buffer } from "node:buffer";
 import type { PageDoc } from "@eventhub/page-schema";
+import escapeHtml from "escape-html";
 
 function base64UrlEncode(input: string) {
   return Buffer.from(input, "utf8").toString("base64").replace(/=+$/u, "").replace(/\+/gu, "-").replace(/\//gu, "_");
@@ -28,6 +29,6 @@ export function encodePlanToHtml({ plan, page }: { plan: string; page: PageDoc }
     url: page.path,
     identifier: page.meta?.planHash
   };
-  const html = `<!doctype html><html><head><script type="application/ld+json">${JSON.stringify(jsonLd)}</script></head><body><div id="root" data-plan="${plan}"></div></body></html>`;
+  const html = `<!doctype html><html><head><script type="application/ld+json">${JSON.stringify(jsonLd)}</script></head><body><div id="root" data-plan="${escapeHtml(plan)}"></div></body></html>`;
   return { html };
 }
