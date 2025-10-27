@@ -1,0 +1,2 @@
+{"query":"family friendly concerts this weekend","intent":"search","filters":{"dateRange":{"preset":"weekend"},"familyFriendly":true,"categories":["music"]}}
+{"query":"plan outdoor art fairs tomorrow","intent":"search","filters":{"dateRange":{"preset":"tomorrow"},"categories":["art"],"accessibility":["outdoor"]}}

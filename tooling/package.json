@@ -1,0 +1,14 @@
+{
+  "name": "@events-hub/tooling",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "echo 'tooling configs'",
+    "test": "echo 'no tests'",
+    "lint": "echo 'lint handled at root'",
+    "check:a11y": "node ./scripts/bundle-check.mjs",
+    "check:bundles": "node ./scripts/bundle-check.mjs",
+    "security:sbom": "node ./scripts/sbom.mjs",
+    "security:provenance": "node ./scripts/provenance.mjs"
+  }
+}
