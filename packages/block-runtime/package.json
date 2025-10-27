@@ -1,0 +1,17 @@
+{
+  "name": "@events-hub/block-runtime",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "echo 'build stub'",
+    "test": "echo 'test stub'",
+    "lint": "echo 'lint stub'"
+  },
+  "dependencies": {
+    "@events-hub/block-registry": "workspace:*",
+    "@events-hub/page-schema": "workspace:*",
+    "preact": "10.19.3"
+  }
+}

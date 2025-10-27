@@ -1,0 +1,20 @@
+{
+  "name": "@events-hub/blocks",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "echo 'build stub'",
+    "test": "echo 'test stub'",
+    "lint": "echo 'lint stub'"
+  },
+  "dependencies": {
+    "@events-hub/block-registry": "workspace:*",
+    "@events-hub/ui": "workspace:*",
+    "react": "18.2.0"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  }
+}

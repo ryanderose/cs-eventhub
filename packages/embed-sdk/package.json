@@ -1,0 +1,27 @@
+{
+  "name": "@events-hub/embed-sdk",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "echo 'build stub'",
+    "test": "echo 'test stub'",
+    "lint": "echo 'lint stub'"
+  },
+  "dependencies": {
+    "@events-hub/page-schema": "workspace:*",
+    "@events-hub/telemetry": "workspace:*",
+    "preact": "10.19.3"
+  },
+  "peerDependencies": {
+    "preact": "^10.19.3"
+  }
+}

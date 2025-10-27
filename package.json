@@ -1,0 +1,32 @@
+{
+  "name": "events-hub",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@8.15.4",
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "dev": "turbo run dev --parallel",
+    "check:a11y": "turbo run check:a11y",
+    "check:bundles": "turbo run check:bundles",
+    "security:sbom": "turbo run security:sbom",
+    "security:provenance": "turbo run security:provenance",
+    "ci": "pnpm -w build && pnpm -w test && pnpm -w lint && pnpm -w check:bundles"
+  },
+  "devDependencies": {
+    "@ladle/react": "3.1.0",
+    "@playwright/test": "1.43.1",
+    "@testing-library/jest-dom": "6.4.1",
+    "@testing-library/react": "14.2.1",
+    "@types/node": "20.11.30",
+    "@types/react": "18.2.48",
+    "@types/react-dom": "18.2.18",
+    "eslint": "8.57.0",
+    "prettier": "3.2.5",
+    "turbo": "1.13.3",
+    "typescript": "5.4.5",
+    "typescript-eslint": "7.8.0",
+    "vitest": "1.5.2"
+  }
+}
