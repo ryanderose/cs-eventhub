@@ -1,6 +1,6 @@
 # Events Hub Monorepo (Pre-Seed)
 
-This repository provides the pre-seed scaffold for the Events Hub platform. It encodes mandatory constraints from the product specification v1.5, defines the monorepo layout, and ships runnable stubs for apps, packages, and tooling.
+This repository provides the pre-seed scaffold for the Events Hub platform. It encodes the mandatory constraints from the product specification v1.6, defines the monorepo layout, and ships runnable stubs for apps, packages, and tooling.
 
 ## Quickstart
 
@@ -23,7 +23,7 @@ pnpm dev:stack
 
 ## Contributing
 
-See [`docs/engineering/ARCHITECTURE.md`](docs/engineering/ARCHITECTURE.md) and [`CONTRIBUTING.md`](docs/engineering/ARCHITECTURE.md#contributing) for architectural guardrails, budgeting expectations, testing requirements, and workflow conventions.
+See [`docs/engineering/ARCHITECTURE.md`](docs/engineering/ARCHITECTURE.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md) for architectural guardrails, budgeting expectations, testing requirements, and workflow conventions.
 
 ## CI Expectations
 
