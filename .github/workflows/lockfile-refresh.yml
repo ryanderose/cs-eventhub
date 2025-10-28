@@ -20,14 +20,25 @@ env:
 
 jobs:
   refresh:
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == env.TARGET_LABEL
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request_target' && github.event.action == 'labeled' && github.event.label.name == env.TARGET_LABEL) }}
     runs-on: ubuntu-latest
     steps:
+      - name: Determine checkout target
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ref=${{ inputs.ref }}" >> "$GITHUB_OUTPUT"
+            echo "repository=${{ github.repository }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
+            echo "repository=${{ github.event.pull_request.head.repo.full_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout source branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event.pull_request.head.ref }}
-          repository: ${{ github.event_name == 'workflow_dispatch' && github.repository || github.event.pull_request.head.repo.full_name }}
+          ref: ${{ steps.target.outputs.ref }}
+          repository: ${{ steps.target.outputs.repository }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
@@ -46,5 +57,5 @@ jobs:
       - name: Commit lockfile
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: chore: refresh pnpm-lock.yaml
+          commit_message: 'chore: refresh pnpm-lock.yaml'
           file_pattern: pnpm-lock.yaml
