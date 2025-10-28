@@ -1,6 +1,6 @@
-# Events Hub Config Service
+# Events Hub Config Service (legacy helper)
 
-The config service mirrors the hosted configuration API used by embed tenants. It exposes signed tenant payloads that point the demo host at either the beta or production embed manifests.
+The config service mirrors the hosted configuration API used by embed tenants. Production deployments now serve these payloads from `apps/api` (see `/config/tenants/[tenant].json`), but this stub remains available for offline testing or bespoke tooling.
 
 ## Endpoints
 

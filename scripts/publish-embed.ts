@@ -5,13 +5,10 @@ import path from 'node:path';
 const root = path.resolve('.');
 const distDir = path.join(root, 'packages/embed-sdk/dist');
 const cdnRoot = path.join(root, 'apps/cdn/public');
-const manifestRoot = path.join(cdnRoot, 'manifest');
 
 type PublishOptions = {
   version?: string;
   cdnSubpath?: string;
-  manifestPrefix?: string;
-  manifestName?: string;
   latestAlias?: string | null;
   manifestOnly?: boolean;
   skipLatest?: boolean;
@@ -42,19 +39,12 @@ function parseArgs(): ParsedArgs {
   return result;
 }
 
-function sanitizeName(name: string): string {
-  return name.replace(/[\\/]+/gu, '-');
-}
-
 function resolveOptions(): PublishOptions {
   const args = parseArgs();
-
   const options: PublishOptions = {};
 
   if (typeof args.version === 'string') options.version = args.version;
   if (typeof args['cdn-subpath'] === 'string') options.cdnSubpath = args['cdn-subpath'];
-  if (typeof args['manifest-prefix'] === 'string') options.manifestPrefix = args['manifest-prefix'];
-  if (typeof args['manifest-name'] === 'string') options.manifestName = sanitizeName(args['manifest-name']);
   if (typeof args['latest-alias'] === 'string') options.latestAlias = args['latest-alias'];
   if (args['manifest-only'] === true) options.manifestOnly = true;
   if (args['skip-latest'] === true) options.skipLatest = true;
@@ -94,12 +84,15 @@ async function ensureDirectoryExists(dir: string) {
   }
 }
 
-async function copyDistToCdn(cdnSubpath: string) {
-  const targetDir = path.join(cdnRoot, cdnSubpath);
+function resolvePackageName(subpath: string): string {
+  const atIndex = subpath.indexOf('@');
+  return atIndex === -1 ? subpath : subpath.slice(0, atIndex);
+}
+
+async function copyDistToCdn(targetDir: string) {
   await rm(targetDir, { recursive: true, force: true });
   await mkdir(targetDir, { recursive: true });
   await cp(distDir, targetDir, { recursive: true });
-  return targetDir;
 }
 
 function computeIntegrity(buffer: Buffer): string {
@@ -127,19 +120,14 @@ async function collectAssets(dir: string) {
 async function writeManifest({
   version,
   assets,
-  manifestDir,
-  manifestName,
-  cdnSubpath,
-  latestAlias
+  targetDir,
+  cdnSubpath
 }: {
   version: string;
   assets: Array<{ filename: string; integrity: string; size: number }>;
-  manifestDir: string;
-  manifestName: string;
+  targetDir: string;
   cdnSubpath: string;
-  latestAlias: string | null;
 }) {
-  await mkdir(manifestDir, { recursive: true });
   const manifest = {
     version,
     cdnBasePath: `/${cdnSubpath}`,
@@ -152,12 +140,13 @@ async function writeManifest({
     }))
   };
 
-  const manifestPath = path.join(manifestDir, `${manifestName}.json`);
-  await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-  if (latestAlias) {
-    await writeFile(path.join(manifestDir, `${latestAlias}.json`), JSON.stringify(manifest, null, 2));
-  }
-  return manifestPath;
+  await writeFile(path.join(targetDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+}
+
+async function updateLatestAlias(sourceDir: string, aliasDir: string) {
+  await rm(aliasDir, { recursive: true, force: true });
+  await mkdir(aliasDir, { recursive: true });
+  await cp(sourceDir, aliasDir, { recursive: true });
 }
 
 async function main() {
@@ -165,33 +154,32 @@ async function main() {
   const packageVersion = await readPackageVersion();
   const version = options.version ?? packageVersion;
   const cdnSubpath = options.cdnSubpath ?? `hub-embed@${version}`;
-  const manifestPrefix = options.manifestPrefix ? sanitizeName(options.manifestPrefix) : undefined;
-  const manifestDir = manifestPrefix ? path.join(manifestRoot, manifestPrefix) : manifestRoot;
-  const manifestName = options.manifestName ?? sanitizeName(version);
-  const latestAlias = options.skipLatest === true ? null : options.latestAlias ?? 'latest';
+  const packageName = resolvePackageName(cdnSubpath);
+  const aliasSuffix = options.latestAlias ?? 'latest';
+  const latestDirName = options.skipLatest === true ? null : `${packageName}@${aliasSuffix}`;
 
-  let targetDir: string;
+  const targetDir = path.join(cdnRoot, cdnSubpath);
+
   if (options.manifestOnly) {
-    targetDir = path.join(cdnRoot, cdnSubpath);
     await ensureDirectoryExists(targetDir);
   } else {
     await ensureDistExists();
-    targetDir = await copyDistToCdn(cdnSubpath);
+    await copyDistToCdn(targetDir);
   }
 
   const assets = await collectAssets(targetDir);
-  const manifestPath = await writeManifest({
-    version,
-    assets,
-    manifestDir,
-    manifestName,
-    cdnSubpath,
-    latestAlias
-  });
+  await writeManifest({ version, assets, targetDir, cdnSubpath });
+
+  if (latestDirName) {
+    const latestDir = path.join(cdnRoot, latestDirName);
+    await updateLatestAlias(targetDir, latestDir);
+  }
 
   console.log(`Published embed assets for ${version}`);
   console.log(`CDN path: /${cdnSubpath}`);
-  console.log(`Manifest written to ${manifestPath}`);
+  if (latestDirName) {
+    console.log(`Latest alias refreshed at /${latestDirName}`);
+  }
 }
 
 main().catch((error) => {
