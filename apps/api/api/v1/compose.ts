@@ -46,7 +46,11 @@ function getComposeCache(): Map<string, CachedComposeEntry> {
   return globalStore.__composeCache;
 }
 
-function readJsonBody(req: VercelRequest): ComposePayload {
+function isFetchRequest(value: unknown): value is Request {
+  return typeof Request !== 'undefined' && value instanceof Request;
+}
+
+function readNodeJsonBody(req: VercelRequest): ComposePayload {
   if (!req.body) {
     return {} as ComposePayload;
   }
@@ -68,6 +72,17 @@ function readJsonBody(req: VercelRequest): ComposePayload {
     }
   }
   return {} as ComposePayload;
+}
+
+async function readEdgeJsonBody(req: Request): Promise<ComposePayload> {
+  try {
+    if (!req.body) {
+      return {} as ComposePayload;
+    }
+    return (await req.json()) as ComposePayload;
+  } catch {
+    return {} as ComposePayload;
+  }
 }
 
 function readCachedResponse(cacheKey: string | null): CachedComposeEntry | null {
@@ -98,7 +113,7 @@ function writeCachedResponse(
   });
 }
 
-function sendJson(
+function sendNodeJson(
   res: VercelResponse,
   status: number,
   body: unknown,
@@ -110,21 +125,55 @@ function sendJson(
   res.status(status).json(body);
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method Not Allowed' });
-    return;
+function sendEdgeJson(
+  status: number,
+  body: unknown,
+  headers: Record<string, string>
+) {
+  const responseHeaders = new Headers();
+  Object.entries(headers).forEach(([key, value]) => {
+    responseHeaders.set(key, value);
+  });
+  if (!responseHeaders.has('content-type')) {
+    responseHeaders.set('content-type', 'application/json; charset=utf-8');
+  }
+  return new Response(JSON.stringify(body), { status, headers: responseHeaders });
+}
+
+export default async function handler(
+  req: VercelRequest | Request,
+  res?: VercelResponse
+): Promise<Response | void> {
+  const method = isFetchRequest(req)
+    ? req.method
+    : (req as VercelRequest).method ?? 'GET';
+  const respond: (
+    status: number,
+    body: unknown,
+    headers: Record<string, string>
+  ) => Response | void = res
+    ? (status, body, headers) => {
+        sendNodeJson(res, status, body, headers);
+      }
+    : (status, body, headers) => sendEdgeJson(status, body, headers);
+
+  if (method !== 'POST') {
+    return respond(405, { error: 'Method Not Allowed' }, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store'
+    }) as Response | void;
   }
 
-  const payload = readJsonBody(req);
+  const payload = isFetchRequest(req)
+    ? await readEdgeJsonBody(req)
+    : readNodeJsonBody(req as VercelRequest);
   const cacheKeyCandidate = buildCacheKey(payload.planHash, payload.composerVersion);
   const cached = readCachedResponse(cacheKeyCandidate);
   if (cached) {
-    sendJson(res, cached.status, cached.body, {
+    return respond(cached.status, cached.body, {
       ...cached.headers,
       'X-Cache': 'HIT'
-    });
-    return;
+    }) as Response | void;
   }
 
   const span = startSpan('composer.call');
@@ -165,18 +214,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     writeCachedResponse(responseCacheKey, body, headers, 200);
-    sendJson(res, 200, body, headers);
+    return respond(200, body, headers) as Response | void;
   } catch (error) {
     span.setAttribute('composer.error', String(error));
-    sendJson(
-      res,
-      500,
-      { error: 'compose_failed' },
-      {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-store'
-      }
-    );
+    return respond(500, { error: 'compose_failed' }, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store'
+    }) as Response | void;
   } finally {
     span.end();
   }
