@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vercel dev --cwd .",
-    "build": "vercel build --cwd .",
+    "build": "echo 'api build handled by Vercel deploy'",
     "start": "vercel dev --cwd .",
+    "vercel:build": "vercel build --cwd .",
     "test": "vitest run --config ../../vitest.config.ts --dir ."
   },
   "dependencies": {
