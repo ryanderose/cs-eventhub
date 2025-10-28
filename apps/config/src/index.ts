@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { createHmac } from 'node:crypto';
-import { tenants, type ManifestMode, type TenantDescriptor } from './data';
+import { tenants, type ManifestMode, type TenantDescriptor } from './data.js';
 
 const port = Number.parseInt(process.env.CONFIG_PORT ?? '4001', 10);
 const host = process.env.CONFIG_HOST ?? 'config.localhost';
