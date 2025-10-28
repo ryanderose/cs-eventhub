@@ -9,7 +9,7 @@
     "lint": "turbo run lint",
     "dev": "turbo run dev --parallel",
     "dev:cdn": "tsx scripts/serve-embed.ts",
-    "dev:stack": "concurrently --kill-others --names demo,api,config,embed,cdn --prefix-colors magenta,cyan,blue,green,yellow \"pnpm --filter @events-hub/demo-host dev\" \"pnpm --filter @events-hub/api dev\" \"pnpm --filter @events-hub/config-service dev\" \"pnpm --filter @events-hub/embed-sdk dev\" \"pnpm dev:cdn\"",
+    "dev:stack": "concurrently --kill-others --names demo,api,embed,cdn --prefix-colors magenta,cyan,green,yellow \"pnpm --filter @events-hub/demo-host dev\" \"pnpm --filter @events-hub/api dev\" \"pnpm --filter @events-hub/embed-sdk dev\" \"pnpm dev:cdn\"",
     "publish:embed": "tsx scripts/publish-embed.ts",
     "check:a11y": "turbo run check:a11y",
     "check:bundles": "turbo run check:bundles",

@@ -32,12 +32,14 @@ let composeHandler: (request: Request) => Promise<Response>;
 let fragmentHandler: (request: Request) => Promise<Response>;
 let interpretHandler: any;
 let planHandler: any;
+let configHandler: any;
 
 beforeAll(async () => {
   composeHandler = (await import('../api/v1/compose')).default;
   fragmentHandler = (await import('../api/v1/fragment')).default;
   interpretHandler = (await import('../api/v1/interpret')).default;
   planHandler = (await import('../api/v1/plan/[id]')).default;
+  configHandler = (await import('../api/config/tenants/[tenant].json')).default;
 });
 
 beforeEach(() => {
@@ -134,5 +136,59 @@ describe('node interpreter', () => {
     await interpretHandler(req, res);
     expect(responsePayload.status).toBe(200);
     expect(responsePayload.body).toHaveProperty('filters');
+  });
+});
+
+describe('config tenant endpoint', () => {
+  afterEach(() => {
+    delete process.env.CONFIG_SIGNING_SECRET;
+  });
+
+  it('returns manifest metadata with optional signature', async () => {
+    process.env.CONFIG_SIGNING_SECRET = 'secret';
+
+    const req = { method: 'GET', query: { tenant: 'demo', mode: 'prod' } } as any;
+    const payload: any = {};
+    const res = {
+      status(code: number) {
+        payload.status = code;
+        return this;
+      },
+      json(body: unknown) {
+        if (payload.status === undefined) {
+          payload.status = 200;
+        }
+        payload.body = body;
+      },
+      setHeader() {}
+    } as any;
+
+    await configHandler(req, res);
+    expect(payload.status).toBe(200);
+    expect(payload.body).toMatchObject({
+      tenant: 'demo',
+      apiBase: expect.stringContaining('https://api'),
+      embed: { src: expect.stringContaining('hub-embed') }
+    });
+    expect(payload.body).toHaveProperty('signature');
+  });
+
+  it('returns 404 for unknown tenants', async () => {
+    const req = { method: 'GET', query: { tenant: 'missing' } } as any;
+    const payload: any = {};
+    const res = {
+      status(code: number) {
+        payload.status = code;
+        return this;
+      },
+      json(body: unknown) {
+        payload.body = body;
+      },
+      setHeader() {}
+    } as any;
+
+    await configHandler(req, res);
+    expect(payload.status).toBe(404);
+    expect(payload.body).toMatchObject({ error: 'unknown_tenant' });
   });
 });

@@ -11,18 +11,19 @@ function buildSignature(payload: string): string {
 }
 
 function formatResponse(tenant: TenantDescriptor, mode: ManifestMode) {
-  const config = {
-    tenantId: tenant.tenantId,
-    apiBaseUrl: tenant.apiBaseUrl,
-    manifests: tenant.manifests,
-    activeMode: mode,
+  const payload = {
+    tenant: tenant.tenantId,
+    apiBase: tenant.apiBaseUrl,
+    manifestUrl: tenant.manifests[mode],
     embed: {
-      manifestUrl: tenant.manifests[mode],
-      cdnOrigin: tenant.cdnOrigin
+      src: tenant.embed[mode]
     }
   };
-  const body = JSON.stringify({ config, signature: buildSignature(JSON.stringify(config)) });
-  return body;
+  const body = {
+    ...payload,
+    signature: buildSignature(JSON.stringify(payload))
+  };
+  return JSON.stringify(body);
 }
 
 function sendJson(res: http.ServerResponse, status: number, body: string) {
