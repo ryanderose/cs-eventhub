@@ -1,6 +1,41 @@
-import { fragmentResponse } from '../../src/lib/csp';
-
 export const config = { runtime: 'edge' };
+
+type FragmentCspOptions = {
+  scriptSrc?: string[];
+  styleSrc?: string[];
+  connectSrc?: string[];
+  styleHashes?: string[];
+  fontSrc?: string[];
+};
+
+function buildFragmentCsp({
+  scriptSrc = [],
+  styleSrc = [],
+  connectSrc = [],
+  styleHashes = [],
+  fontSrc = []
+}: FragmentCspOptions): string {
+  const directives: string[] = [];
+  directives.push("default-src 'self'");
+  directives.push(["script-src 'self'", ...scriptSrc].join(' '));
+  const styleParts = ["style-src 'self'"].concat(styleHashes.map((hash) => `'${hash}'`)).concat(styleSrc);
+  directives.push(styleParts.join(' '));
+  directives.push(["connect-src 'self'", ...connectSrc].join(' '));
+  directives.push(["font-src 'self'", ...fontSrc].join(' '));
+  directives.push("img-src 'self' data:");
+  directives.push("frame-ancestors 'none'");
+  directives.push("object-src 'none'");
+  directives.push("base-uri 'none'");
+  return directives.join('; ');
+}
+
+function fragmentResponse(html: string, options: FragmentCspOptions) {
+  const headers = new Headers({
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Security-Policy': buildFragmentCsp(options)
+  });
+  return new Response(html, { status: 200, headers });
+}
 
 function extractTenantId(url: URL): string {
   return (

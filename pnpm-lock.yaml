@@ -142,6 +142,9 @@ importers:
 
   packages/ai-composer:
     dependencies:
+      '@events-hub/ai-interpreter':
+        specifier: workspace:*
+        version: link:../ai-interpreter
       '@events-hub/data-providers':
         specifier: workspace:*
         version: link:../data-providers

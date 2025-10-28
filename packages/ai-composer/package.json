@@ -17,6 +17,7 @@
     "lint": "echo 'lint stub'"
   },
   "dependencies": {
+    "@events-hub/ai-interpreter": "workspace:*",
     "@events-hub/page-schema": "workspace:*",
     "@events-hub/data-providers": "workspace:*"
   }

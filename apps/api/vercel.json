@@ -1,17 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "framework": null,
+  "outputDirectory": "api",
   "alias": [
     "api.townthink.com",
     "config.townthink.com",
     "cs-eventhub-api.vercel.app"
   ],
-  "functions": {
-    "api/v1/compose.ts": { "runtime": "edge", "maxDuration": 15 },
-    "api/v1/fragment.ts": { "runtime": "edge" },
-    "api/v1/plan/[id].ts": { "runtime": "nodejs20.x" },
-    "api/v1/interpret.ts": { "runtime": "nodejs20.x" }
-  },
   "rewrites": [
     { "source": "/v1/compose", "destination": "/api/v1/compose" },
     { "source": "/v1/fragment/(.*)", "destination": "/api/v1/fragment?tenantId=$1" },
