@@ -14,6 +14,16 @@
     hydration.
   - `NEXT_PUBLIC_API_BASE` — base URL for SEO fragment fetches.
   - `NEXT_PUBLIC_PLAN_MODE` — toggles layout theming for beta/prod parity.
+  - `DEMO_HOSTNAME` — controls the canonical hostname used for metadata, image
+    patterns, and local dev host binding.
+  - `SEO_FRAGMENT_REVALIDATE` — optional override for ISR defaults applied to
+    the SEO fragment route.
+
+- When adding or updating dependencies in this package, run `pnpm install` from
+  the repo root so the lockfile stays in sync with CI expectations.
+- Avoid enabling additional Next.js experimental flags unless they are known to
+  be supported in the current release — the build pipeline runs with CI mode
+  enabled and will fail fast on unsupported options.
 
 ## Testing
 

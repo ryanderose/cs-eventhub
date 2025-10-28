@@ -5,6 +5,8 @@ const packageJson = require('./package.json');
 
 const DEFAULT_REVALIDATE_SECONDS = Number(process.env.SEO_FRAGMENT_REVALIDATE ?? 300);
 const DEMO_HOSTNAME = process.env.DEMO_HOSTNAME ?? 'demo.localhost';
+const isLocalHostname = DEMO_HOSTNAME.endsWith('.localhost') || DEMO_HOSTNAME === 'localhost';
+const imageProtocols = isLocalHostname ? ['http', 'https'] : ['https'];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -30,12 +32,10 @@ const nextConfig = {
     DEFAULT_ISR_REVALIDATE: String(DEFAULT_REVALIDATE_SECONDS)
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: DEMO_HOSTNAME
-      }
-    ]
+    remotePatterns: imageProtocols.map((protocol) => ({
+      protocol,
+      hostname: DEMO_HOSTNAME
+    }))
   },
   eslint: {
     dirs: ['app']

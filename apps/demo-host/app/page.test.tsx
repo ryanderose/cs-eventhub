@@ -42,6 +42,7 @@ describe('Page', () => {
       expect(region).toHaveAttribute('aria-label', 'Demo Host Plan');
     });
 
+    expect(view.getByText('Plan mode: beta')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -73,6 +74,7 @@ describe('Page', () => {
       expect(host?.shadowRoot).not.toBeNull();
     });
 
+    expect(view.getByText('Plan mode: beta')).toBeInTheDocument();
     expect(appendSpy).toHaveBeenCalled();
 
     appendSpy.mockRestore();
