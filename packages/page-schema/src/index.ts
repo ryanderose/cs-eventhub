@@ -328,12 +328,11 @@ function sortObjectKeys(value: unknown): unknown {
   return value;
 }
 
-function canonicalizeBlock(block: BlockInstance): BlockInstance {
-  const sorted = {
+function canonicalizeBlock<T extends BlockInstance>(block: T): T {
+  return {
     ...block,
-    data: sortObjectKeys(block.data) as BlockInstance['data']
+    data: sortObjectKeys(block.data) as T['data']
   };
-  return sorted;
 }
 
 export function canonicalizePageDoc(doc: PageDoc): PageDoc {
