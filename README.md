@@ -8,10 +8,10 @@ This repository provides the pre-seed scaffold for the Events Hub platform. It e
 pnpm install
 pnpm -w build
 pnpm -w test
-pnpm -w dev
+pnpm dev:stack
 ```
 
-The `dev` script launches the demo host and API stub with mocked data via MSW.
+`pnpm dev:stack` starts the demo host, Vercel API emulator, config service, embed watcher, and local CDN server in parallel.
 
 ## Repository Highlights
 
