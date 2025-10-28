@@ -1,28 +1,20 @@
-# Events Hub — Product Build Specification **v1.5**
+# Events Hub — Product Build Specification **v1.6**
 
 **Status:** READY FOR BUILD (GA with gates)  
 **Owners:** Platform (Embed SDK), Experience (Blocks/UI), Data (Providers/Search), AI (Interpreter + Composer), Infra/SecOps  
-**Version:** 1.5  
+**Version:** 1.6
 **Audience:** Senior dev architects, staff‑level ICs, tech leads, engineering managers
 
-> **Purpose:** This document supersedes **v1.4** and consolidates the entire specification into a single, build‑ready source of truth. It integrates the base platform defined in v1.4 with the newly approved improvements: **AI Plan Composer**, **URL‑persisted plans**, **Map Grid block**, **Promo Slot block**, **ranking diversity**, **expanded analytics**, **strict CSP for SEO fragments**, and **event‑scoped AI chat**—and codifies the **hard policy of _no iframe support_**.
+> **Purpose:** This document supersedes **v1.5** and consolidates the entire specification into a single, build‑ready source of truth. It carries forward the platform defined in v1.5 while hardening our GA criteria: **stubbed renders no longer count toward hero/promo/map/chat delivery**, **SDK analytics must meet `SdkEvent` schema guarantees with real hydration/visibility triggers**, and **deliverable reviews reject lingering stub implementations in core packages**.
 
 
 ---
 
-## 0) Δ What changed (v1.4 → v1.5)
+## 0) Δ What changed (v1.5 → v1.6)
 
-1) **AI Plan Composer (new, server):** `POST /v1/compose` converts the Filter/AI DSL into a **minimal `PageDoc`** with per‑block cursors and **progressive section hydration**. SDK now emits `sdk.blockHydrated` and `sdk.blockDepleted`.
-2) **URL‑persisted plans (new):** Deep links via `?plan=<base64url(zstd(json))>`. If >2,048 chars, fallback to `?p=<shortId>` stored server‑side. Deterministic **`planHash`**.
-3) **Map Grid block (new):** Optional list ↔ map toggle with clustered pins and **non‑map a11y fallback**. Virtualized list, keyboardable markers.
-4) **Sponsor/House Promo block (new):** First‑class `promo-slot` with measurement hooks (impression/in‑view/click), frequency caps, tenant safety rails.
-5) **Ranking diversity (new):** Venue/day/category constraints for healthier rows; tenant overrides supported.
-6) **Analytics (expanded):** New events: `card_impression`, `card_click`, `ticket_outbound_click`, `promo_impression`, `promo_click`, `chat_open`, `chat_submit`, `chat_latency_ms`, `ai_fallback_triggered`.
-7) **Strict CSP for SEO fragments (tightened):** No `unsafe-inline` for styles; fragments deliver **hashed ≤6 kB critical CSS** + one deferred stylesheet. Shadow DOM continues to use Constructable Stylesheets.
-8) **Event‑scoped AI chat (new):** On card/detail; cites fields; feature‑flag per tenant; analytics included.
-9) **Edge cache keys (updated):** Include `planHash` and `composerVersion` to ensure safe invalidation and deterministic shareability.
-10) **Resolved defaults (closed open items):** CitySpark quotas, sitemap ISR cadence, GeoIP provider, CMP adapters, OLAP store (ClickHouse). See §21 and §22.
-11) **Policy:** **No iframe support**. Shadow‑DOM embed (SDK) + Light‑DOM SEO fragments only. Publishers requiring iframes are out of scope.
+1) **Acceptance criteria tightened:** Stubbed renders (text placeholders, static screenshots/lists, etc.) **do not** fulfill the hero, promo, map, or chat block requirements; production implementations must hydrate real data.
+2) **SDK analytics enforcement:** Embed SDK analytics must be emitted from real hydration/visibility logic and conform to the `SdkEvent` schema before GA sign‑off.
+3) **Deliverable review gate:** Reviewers must reject PRs that ship or leave stubbed components behind in `packages/blocks` or `packages/embed-sdk` once a feature graduates from scaffolding.
 
 > Foundations from v1.4 are preserved: **Shadow‑DOM embed**, **Preact + `preact/compat` in embed**, **Radix + shadcn + Tailwind (preflight off)**, **indexable non‑AI layouts** (SEO/ISR/sitemaps/JSON‑LD), **WCAG 2.2 AA launch gate**, **OTel** across client/server, **SOC2‑aligned** posture, **SBOM/CodeQL/SLSA** provenance.
 
@@ -39,7 +31,7 @@
 - **Accessible & fast:** WCAG 2.2 AA, keyboardable carousels and dialogs, `prefers-reduced-motion`, bundle budgets, streamed rendering, virtualization.
 - **Observable & measurable:** first‑class analytics events and SLOs, OTel tracing, public tenant dashboards.
 
-### 1.2 Non‑Goals (v1.5)
+### 1.2 Non‑Goals (v1.6)
 - Event authoring/management UI; ticketing/checkout flows (link out to `ticket_url`).
 - Identity/accounts (beyond anonymous consented prefs).
 - Third‑party block marketplace; executing untrusted code.
@@ -66,14 +58,14 @@ Parallel: **Admin** → **Pages Store** → **Content API** → **Embed SDK**; *
 root/
 ├─ apps/
 │  ├─ admin/         # Next.js 15 (React) — Tenant config, pages, themes, publish
-│  ├─ demo-host/     # Host demo (route takeover + SEO parity)
+│  ├─ demo-host/     # Next.js 15 host demo (route takeover + SEO parity)
 │  └─ api/           # BFF: Config, Content, AI (interpret/compose), Analytics, GeoIP
 ├─ packages/
-│  ├─ ui/            # Radix wrappers, shadcn presets, Portal hook, a11y helpers
-│  ├─ embed-sdk/     # SDK (Shadow DOM; Preact + compat), router, section themes
-│  ├─ block-runtime/ # Renderer & hydration orchestrator
+│  ├─ ui/            # Radix wrappers, shadcn presets, Portal hook, a11y helpers — ships via Vite library mode (UMD + ESM, code-splitting)
+│  ├─ embed-sdk/     # SDK (Shadow DOM; Preact + compat), router, section themes — ships via Vite library mode (UMD + ESM, code-splitting)
+│  ├─ block-runtime/ # Renderer & hydration orchestrator — ships via Vite library mode (UMD + ESM, code-splitting)
 │  ├─ block-registry/# Registry + schemas
-│  ├─ blocks/        # hero, filters, event-list, calendar/*, detail, non-AI layouts, map-grid, promo-slot
+│  ├─ blocks/        # hero, filters, event-list, calendar/*, detail, non-AI layouts, map-grid, promo-slot — ships via Vite library mode (UMD + ESM, code-splitting)
 │  ├─ page-schema/   # Zod + JSON Schema (BlockInstance, PageDoc)
 │  ├─ data-providers/# CitySpark adapter, canonicalizer, cache, rate limiters
 │  ├─ ai-interpreter/# DSL + model router; safety
@@ -94,7 +86,7 @@ root/
 
 ## 4) Contracts & Data Models
 
-### 4.1 Page & Block (v1.5)
+### 4.1 Page & Block (v1.6)
 
 ```ts
 // packages/page-schema/block.ts
@@ -119,7 +111,7 @@ export const PageDoc = z.object({
   path: z.string().min(1),              // defaults to tenant.basePath or subroute
   blocks: z.array(BlockInstance),
   updatedAt: z.string().datetime(),
-  version: z.string().default("1.5"),
+  version: z.string().default("1.6"),
   tenantId: z.string(),
   meta: z.object({
     planHash: z.string().optional(),
@@ -232,6 +224,8 @@ type SdkEvent =
   | { type: "ai_fallback_triggered"; reason: "timeout"|"policy" };
 ```
 
+> **GA gate:** SDK analytics must emit from genuine hydration/visibility logic and match the `SdkEvent` schema above—stubbed dispatches or placeholder timers do **not** count toward launch readiness.
+
 ### 5.4 Shadow DOM, Styles & Overlays
 - **Preact + `preact/compat`** in **embed**; Admin/blocks dev remain on React.
 - **Constructable Stylesheets** attached to `shadowRoot` in order: (1) tokens.css, (2) tailwind-utilities.css (**preflight disabled**, tree‑shaken), (3) per‑block.css.
@@ -288,7 +282,7 @@ export type AiQuery = {
 ```json
 {
   "tenantId": "abc123",
-  "version": "1.5",
+  "version": "1.6",
   "routing": { "basePath": "/whatson" },
   "theme": {
     "tokens": { "--hub-color-primary": "#0a67ff", "--hub-radius": "8px" },
@@ -319,12 +313,17 @@ export type AiQuery = {
 ## 8) URL‑Persisted Plan (new)
 
 ### 8.1 Encoding
-- `?plan=<base64url(zstd(JSON.stringify({dsl, meta})))>`
-- If length > **2,048 chars**, server stores and returns `?p=<shortId>` (base62 8–12).
+- `encodePlan(PageDoc)` (see `packages/router-helpers`) emits `<prefix>:<base64url(payload)>`:
+  - `z:` — Zstandard level 3 (preferred when optional native binding available).
+  - `b:` — Brotli (Node `brotliCompressSync`) fallback when Zstd unavailable.
+  - `p:` — Plain UTF‑8 JSON when no compression bindings exist.
+- Inline budget: if the resulting string is ≤ **2,048 chars**, it is returned as `encodedPlan` and pushed to the URL query as `plan=`.
+- If the payload exceeds the inline budget, the API stores it server‑side and responds with `shortId = planHash` for `?p=` links.
 
 ### 8.2 Canonicalization
 - Normalize date presets, sort, and category aliases before hashing.
-- `planHash = sha1(normalizedPlan)` → `PageDoc.meta.planHash`.
+- Canonicalization sorts block orders/keys, meta flags, and cursors; hash input is stable JSON.
+- `planHash = base64url(sha256(canonicalPageDoc))` → `PageDoc.meta.planHash` and the persisted `shortId`.
 - Helpers:
 ```ts
 export function encodePlan(plan: object): string;
@@ -333,6 +332,71 @@ export function decodePlan(param: string): object;
 
 ### 8.3 SEO
 - Personalized/AI plans **noindex**; canonical to equivalent non‑AI routes when available.
+
+### 8.4 API delivery examples
+
+```http
+POST /v1/compose
+Content-Type: application/json
+
+{
+  "tenantId": "demo",
+  "intent": "search",
+  "filters": { "categories": ["music"], "date": { "preset": "this-weekend" } }
+}
+
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: s-maxage=300, stale-while-revalidate=60
+
+{
+  "composerVersion": "1.6.0",
+  "page": { "...PageDoc...", "meta": { "planHash": "k1nYx2..." } },
+  "cursors": { "hero": "cursor123" },
+  "encodedPlan": "z:KLUv/QBQ..."
+}
+```
+
+> Inline example: `encodedPlan` stays under the 2 kB limit and can be embedded directly in the URL.
+
+```http
+POST /v1/compose
+Content-Type: application/json
+
+{
+  "tenantId": "demo",
+  "intent": "search",
+  "filters": { "categories": ["festival"], "date": { "range": { "from": "2024-06-01", "to": "2024-07-15" } } }
+}
+
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: s-maxage=300, stale-while-revalidate=60
+
+{
+  "composerVersion": "1.6.0",
+  "page": { "...PageDoc...", "meta": { "planHash": "Qz4p2Y..." } },
+  "cursors": { "grid": "cursor999" },
+  "shortId": "Qz4p2YjYk7F2bPgX5lmy8X7cQyC6uXy7y9SRVYjN6qM"
+}
+```
+
+> Fallback example: the encoded plan exceeded the inline budget, so the response drops `encodedPlan` and returns the SHA‑256 short ID to be used with `?p=`.
+
+```http
+GET /v1/plan/Qz4p2YjYk7F2bPgX5lmy8X7cQyC6uXy7y9SRVYjN6qM
+
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-store
+
+{
+  "encoded": "z:KLUv/...large...",
+  "plan": { "...PageDoc..." }
+}
+```
+
+> Retrieval example: resolving the `shortId` fetches the stored payload alongside its decoded `PageDoc`.
 
 
 ---
@@ -471,9 +535,10 @@ Content-Security-Policy:
 
 ## 18) Testing Strategy & CI
 
-- **Unit:** Vitest + RTL; Zod contract tests; provider mapping; timezone/DST fuzz.  
-- **Stories:** Ladle for empty/loading/populated/error + axe for all blocks.  
-- **Network:** MSW for CitySpark; chaos toggles (latency, 429/5xx).  
+- **Unit:** Vitest + RTL; Zod contract tests; provider mapping; timezone/DST fuzz.
+- **Stories:** Ladle for empty/loading/populated/error + axe for all blocks.
+- **Tooling note:** Ladle and block developer surfaces already run on Vite's dev server; the API remains a Node/Edge service and does not adopt Vite.
+- **Network:** MSW for CitySpark; chaos toggles (latency, 429/5xx).
 - **E2E (Playwright):**
   - Embed mount, Shadow DOM, basePath overrides
   - Back/forward parity, URL filter persistence, deep‑link detail
@@ -497,7 +562,7 @@ Content-Security-Policy:
 - DOM sanitization for rich text; no inline event handlers.  
 - SBOM in CI; CodeQL; SLSA ≥ Level 2 provenance; independent pen‑test pre‑GA.  
 - Region/data‑residency per tenant; default US.  
-- Third‑party code execution **not supported** in v1.5.
+- Third‑party code execution **not supported** in v1.6.
 
 
 ---
@@ -522,17 +587,18 @@ Content-Security-Policy:
 
 ---
 
-## 22) Deliverables & Acceptance Criteria (v1.5)
+## 22) Deliverables & Acceptance Criteria (v1.6)
 
-- **Embed SDK 1.5** (UMD/ESM) with Shadow‑DOM default, **Preact + compat**, section themes, basePath `/events`; composer streaming; expanded events; budgets pass.  
+- **Embed SDK 1.6** (UMD/ESM) with Shadow‑DOM default, **Preact + compat**, section themes, basePath `/events`; composer streaming; expanded events; budgets pass.
 - **AI Interpreter + Composer** services with model routing, pinned models, offline evals; latency budgets & fallback enforced.  
 - **URL‑persisted plans** (encode/decode, short IDs); deterministic `planHash`.  
-- **Blocks:** Map Grid and Promo Slot added; all blocks render in Shadow‑DOM embed and Light‑DOM fragments.  
+- **Blocks:** Map Grid and Promo Slot added; all blocks render in Shadow‑DOM embed and Light‑DOM fragments. **Stubbed hero/promo/map/chat renders (text placeholders, static lists, screenshots, etc.) do not satisfy acceptance; production builds must hydrate real data for these blocks.**
 - **CitySpark adapter** with canonicalization, facets, quotas, retries, breaker; OTel metrics.  
 - **SEO:** indexable non‑AI pages; sitemaps; **strict CSP** for fragments.  
 - **A11y:** suite green including Map Grid/Promo Slot flows.  
-- **Analytics:** expanded schema live; Metabase dashboards deployed.  
+- **Analytics:** expanded schema live; Metabase dashboards deployed.
 - **Policy:** **No iframe support** is documented and enforced across SDK/docs.
+- **Review gate:** Reviewers must reject PRs that leave stubbed components or placeholder renders in `packages/blocks` or `packages/embed-sdk` once the feature is ready for GA.
 
 
 ---
@@ -555,7 +621,7 @@ Content-Security-Policy:
 ### A) Example embed snippet (with plan URL)
 ```html
 <div id="events-hub"></div>
-<script async src="https://cdn.your-cdn.com/hub-embed@1.5/hub-embed.umd.js"
+<script async src="https://cdn.your-cdn.com/hub-embed@1.6/hub-embed.umd.js"
         integrity="sha384-REPLACE_WITH_SRI" crossorigin="anonymous"></script>
 <script>
   (async function () {

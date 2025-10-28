@@ -1,0 +1,107 @@
+name: Promote demo & API deployments
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment (beta or production)
+        required: true
+        type: choice
+        options:
+          - beta
+          - production
+      demo_deployment_url:
+        description: Preview deployment URL for the demo host
+        required: true
+        type: string
+      api_deployment_url:
+        description: Preview deployment URL for the API
+        required: true
+        type: string
+
+jobs:
+  promote:
+    if: secrets.VERCEL_TOKEN != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      TARGET_ENVIRONMENT: ${{ inputs.environment }}
+      DEMO_DEPLOYMENT_URL: ${{ inputs.demo_deployment_url }}
+      API_DEPLOYMENT_URL: ${{ inputs.api_deployment_url }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID_DEMO: ${{ secrets.VERCEL_PROJECT_ID_DEMO_HOST }}
+      VERCEL_PROJECT_ID_API: ${{ secrets.VERCEL_PROJECT_ID_API }}
+      DEMO_BETA_ALIAS: ${{ secrets.DEMO_BETA_ALIAS }}
+      DEMO_PROD_ALIAS: ${{ secrets.DEMO_PROD_ALIAS }}
+      API_BETA_ALIAS: ${{ secrets.API_BETA_ALIAS }}
+      API_PROD_ALIAS: ${{ secrets.API_PROD_ALIAS }}
+      SMOKE_TENANT: ${{ secrets.SMOKE_TENANT }}
+      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
+      CLICKHOUSE_USER: ${{ secrets.CLICKHOUSE_USER }}
+      CLICKHOUSE_PASSWORD: ${{ secrets.CLICKHOUSE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Resolve target aliases
+        id: aliases
+        run: |
+          if [ "$TARGET_ENVIRONMENT" = "beta" ]; then
+            DEMO_ALIAS="$DEMO_BETA_ALIAS"
+            API_ALIAS="$API_BETA_ALIAS"
+          else
+            DEMO_ALIAS="$DEMO_PROD_ALIAS"
+            API_ALIAS="$API_PROD_ALIAS"
+          fi
+
+          if [ -z "$DEMO_ALIAS" ] || [ -z "$API_ALIAS" ]; then
+            echo "Missing alias configuration for $TARGET_ENVIRONMENT" >&2
+            exit 1
+          fi
+
+          echo "::add-mask::$DEMO_ALIAS"
+          echo "::add-mask::$API_ALIAS"
+          echo "demo_alias=$DEMO_ALIAS" >> "$GITHUB_OUTPUT"
+          echo "api_alias=$API_ALIAS" >> "$GITHUB_OUTPUT"
+          echo "SMOKE_DEMO_URL=https://$DEMO_ALIAS" >> "$GITHUB_ENV"
+          echo "SMOKE_API_URL=https://$API_ALIAS" >> "$GITHUB_ENV"
+      - name: Promote demo host deployment
+        env:
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID_DEMO }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Missing Vercel credentials for demo host." >&2
+            exit 1
+          fi
+
+          pnpm dlx vercel alias set "$DEMO_DEPLOYMENT_URL" "${{ steps.aliases.outputs.demo_alias }}" --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+      - name: Promote API deployment
+        env:
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID_API }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Missing Vercel credentials for API." >&2
+            exit 1
+          fi
+
+          pnpm dlx vercel alias set "$API_DEPLOYMENT_URL" "${{ steps.aliases.outputs.api_alias }}" --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+      - name: Run smoke tests
+        env:
+          SMOKE_TENANT: ${{ env.SMOKE_TENANT }}
+        run: pnpm exec playwright test tooling/tests/smoke
+      - name: Publish summary
+        run: |
+          echo "## Deployment promoted" >> "$GITHUB_STEP_SUMMARY"
+          echo "* Environment: ${TARGET_ENVIRONMENT}" >> "$GITHUB_STEP_SUMMARY"
+          echo "* Demo host: https://${{ steps.aliases.outputs.demo_alias }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "* API: https://${{ steps.aliases.outputs.api_alias }}" >> "$GITHUB_STEP_SUMMARY"

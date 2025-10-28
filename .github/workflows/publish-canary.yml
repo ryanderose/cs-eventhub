@@ -1,0 +1,84 @@
+name: Publish embed canary
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    if: secrets.VERCEL_TOKEN != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_CDN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build embed SDK
+        run: pnpm --filter @events-hub/embed-sdk build
+      - name: Generate canary assets and manifest
+        env:
+          CANARY_VERSION: canary-${{ github.sha }}
+        run: |
+          pnpm tsx scripts/publish-embed.ts \
+            --version "$CANARY_VERSION" \
+            --cdn-subpath "hub-embed@canary/${GITHUB_SHA}" \
+            --manifest-prefix canary \
+            --manifest-name "${GITHUB_SHA}" \
+            --latest-alias latest
+      - name: Generate SBOM
+        run: pnpm -w security:sbom
+      - name: Generate provenance
+        run: pnpm -w security:provenance
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: embed-sdk-sbom-canary-${{ github.sha }}
+          path: .sbom
+      - name: Upload provenance artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: embed-sdk-provenance-canary-${{ github.sha }}
+          path: provenance
+      - name: Deploy to CDN
+        id: deploy
+        working-directory: apps/cdn
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Missing Vercel credentials for CDN deployment." >&2
+            exit 1
+          fi
+
+          mkdir -p .vercel
+          cat <<JSON > .vercel/project.json
+          {"orgId":"${VERCEL_ORG_ID}","projectId":"${VERCEL_PROJECT_ID}"}
+          JSON
+
+          pnpm dlx vercel pull --yes --environment=production --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          pnpm dlx vercel build --prod --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          response=$(pnpm dlx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --yes --archive=tgz --json)
+          url=$(echo "$response" | jq -r '.url')
+          if [ -z "$url" ] || [ "$url" = "null" ]; then
+            echo "Failed to parse CDN deployment URL." >&2
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Publish summary
+        run: |
+          echo "## Embed canary published" >> "$GITHUB_STEP_SUMMARY"
+          echo "* Deployment: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "* CDN path: /hub-embed@canary/${GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
