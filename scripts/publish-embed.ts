@@ -56,14 +56,42 @@ function resolveOptions(): PublishOptions {
   return options;
 }
 
-async function readPackageVersion(): Promise<string> {
+function readOptionalEnv(name: string): string | null {
+  const value = process.env[name];
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function sanitizeLabel(label: string): string {
+  return sanitizeName(label.replace(/[^a-zA-Z0-9@._-]/gu, '-'));
+}
+
+async function readPackageVersion(): Promise<string | null> {
   const pkgPath = path.join(root, 'packages/embed-sdk/package.json');
   const raw = await readFile(pkgPath, 'utf8');
   const pkg = JSON.parse(raw) as { version: string };
   if (!pkg.version || pkg.version === '0.0.0') {
-    throw new Error('Embed SDK package.json must specify a release version.');
+    return null;
   }
   return pkg.version;
+}
+
+function resolveDynamicVersion(): string {
+  const explicit = readOptionalEnv('EMBED_VERSION') ?? readOptionalEnv('EMBED_SDK_VERSION');
+  if (explicit) return sanitizeLabel(explicit);
+
+  const commitSha = readOptionalEnv('VERCEL_GIT_COMMIT_SHA') ?? readOptionalEnv('GITHUB_SHA');
+  if (commitSha) {
+    return sanitizeLabel(`preview-${commitSha.slice(0, 12)}`);
+  }
+
+  const buildId = readOptionalEnv('VERCEL_BUILD_ID');
+  if (buildId) {
+    return sanitizeLabel(`build-${buildId}`);
+  }
+
+  return sanitizeLabel(`dev-${Date.now()}`);
 }
 
 async function ensureDistExists() {
@@ -154,9 +182,14 @@ async function writeManifestFile(targetDir: string, manifest: ManifestEntry) {
 async function main() {
   const options = resolveOptions();
   const packageVersion = await readPackageVersion();
-  const version = options.version ?? packageVersion;
+  const fallbackVersion = resolveDynamicVersion();
+  const rawVersion = options.version ?? packageVersion ?? fallbackVersion;
+  const version = sanitizeLabel(rawVersion) || fallbackVersion;
   const cdnSubpath = options.cdnSubpath ?? `hub-embed@${version}`;
-  const latestAlias = options.skipLatest === true ? null : options.latestAlias ?? 'hub-embed@latest';
+  const vercelEnv = readOptionalEnv('VERCEL_ENV');
+  const skipLatestByEnv = vercelEnv ? vercelEnv.toLowerCase() !== 'production' : false;
+  const shouldSkipLatest = options.skipLatest === true || skipLatestByEnv;
+  const latestAlias = shouldSkipLatest ? null : options.latestAlias ?? 'hub-embed@latest';
 
   let targetDir: string;
   if (options.manifestOnly) {
@@ -170,6 +203,10 @@ async function main() {
   const assets = await collectAssets(targetDir);
   const manifest = buildManifest(version, cdnSubpath, assets);
   const manifestPath = await writeManifestFile(targetDir, manifest);
+
+  console.log(`Published embed assets for ${version}`);
+  console.log(`CDN path: /${cdnSubpath}`);
+  console.log(`Manifest written to ${manifestPath}`);
 
   if (latestAlias) {
     const aliasSubpath = sanitizeName(latestAlias);
@@ -186,11 +223,11 @@ async function main() {
     const aliasManifest = buildManifest(version, aliasSubpath, assets);
     await writeManifestFile(aliasDir, aliasManifest);
     console.log(`Updated latest alias at /${aliasSubpath}`);
+  } else if (options.skipLatest === true) {
+    console.log('Skipped latest alias update because --skip-latest was provided.');
+  } else if (skipLatestByEnv) {
+    console.log('Skipped latest alias update because VERCEL_ENV is not production.');
   }
-
-  console.log(`Published embed assets for ${version}`);
-  console.log(`CDN path: /${cdnSubpath}`);
-  console.log(`Manifest written to ${manifestPath}`);
 }
 
 main().catch((error) => {
