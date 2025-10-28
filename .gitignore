@@ -12,3 +12,5 @@ coverage/
 *.log
 playwright-report/
 .sbom/
+!apps/demo-host/.env.local
+!apps/demo-host/.env.example
