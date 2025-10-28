@@ -5,13 +5,9 @@ import path from 'node:path';
 const root = path.resolve('.');
 const distDir = path.join(root, 'packages/embed-sdk/dist');
 const cdnRoot = path.join(root, 'apps/cdn/public');
-const manifestRoot = path.join(cdnRoot, 'manifest');
-
 type PublishOptions = {
   version?: string;
   cdnSubpath?: string;
-  manifestPrefix?: string;
-  manifestName?: string;
   latestAlias?: string | null;
   manifestOnly?: boolean;
   skipLatest?: boolean;
@@ -53,8 +49,6 @@ function resolveOptions(): PublishOptions {
 
   if (typeof args.version === 'string') options.version = args.version;
   if (typeof args['cdn-subpath'] === 'string') options.cdnSubpath = args['cdn-subpath'];
-  if (typeof args['manifest-prefix'] === 'string') options.manifestPrefix = args['manifest-prefix'];
-  if (typeof args['manifest-name'] === 'string') options.manifestName = sanitizeName(args['manifest-name']);
   if (typeof args['latest-alias'] === 'string') options.latestAlias = args['latest-alias'];
   if (args['manifest-only'] === true) options.manifestOnly = true;
   if (args['skip-latest'] === true) options.skipLatest = true;
@@ -124,23 +118,20 @@ async function collectAssets(dir: string) {
   return manifestEntries.sort((a, b) => a.filename.localeCompare(b.filename));
 }
 
-async function writeManifest({
-  version,
-  assets,
-  manifestDir,
-  manifestName,
-  cdnSubpath,
-  latestAlias
-}: {
+type ManifestEntry = {
   version: string;
-  assets: Array<{ filename: string; integrity: string; size: number }>;
-  manifestDir: string;
-  manifestName: string;
-  cdnSubpath: string;
-  latestAlias: string | null;
-}) {
-  await mkdir(manifestDir, { recursive: true });
-  const manifest = {
+  cdnBasePath: string;
+  generatedAt: string;
+  assets: Array<{
+    path: string;
+    filename: string;
+    integrity: string;
+    size: number;
+  }>;
+};
+
+function buildManifest(version: string, cdnSubpath: string, assets: Array<{ filename: string; integrity: string; size: number }>): ManifestEntry {
+  return {
     version,
     cdnBasePath: `/${cdnSubpath}`,
     generatedAt: new Date().toISOString(),
@@ -150,13 +141,13 @@ async function writeManifest({
       integrity: asset.integrity,
       size: asset.size
     }))
-  };
+  } satisfies ManifestEntry;
+}
 
-  const manifestPath = path.join(manifestDir, `${manifestName}.json`);
+async function writeManifestFile(targetDir: string, manifest: ManifestEntry) {
+  await mkdir(targetDir, { recursive: true });
+  const manifestPath = path.join(targetDir, 'manifest.json');
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
-  if (latestAlias) {
-    await writeFile(path.join(manifestDir, `${latestAlias}.json`), JSON.stringify(manifest, null, 2));
-  }
   return manifestPath;
 }
 
@@ -165,10 +156,7 @@ async function main() {
   const packageVersion = await readPackageVersion();
   const version = options.version ?? packageVersion;
   const cdnSubpath = options.cdnSubpath ?? `hub-embed@${version}`;
-  const manifestPrefix = options.manifestPrefix ? sanitizeName(options.manifestPrefix) : undefined;
-  const manifestDir = manifestPrefix ? path.join(manifestRoot, manifestPrefix) : manifestRoot;
-  const manifestName = options.manifestName ?? sanitizeName(version);
-  const latestAlias = options.skipLatest === true ? null : options.latestAlias ?? 'latest';
+  const latestAlias = options.skipLatest === true ? null : options.latestAlias ?? 'hub-embed@latest';
 
   let targetDir: string;
   if (options.manifestOnly) {
@@ -180,14 +168,25 @@ async function main() {
   }
 
   const assets = await collectAssets(targetDir);
-  const manifestPath = await writeManifest({
-    version,
-    assets,
-    manifestDir,
-    manifestName,
-    cdnSubpath,
-    latestAlias
-  });
+  const manifest = buildManifest(version, cdnSubpath, assets);
+  const manifestPath = await writeManifestFile(targetDir, manifest);
+
+  if (latestAlias) {
+    const aliasSubpath = sanitizeName(latestAlias);
+    const aliasDir = path.join(cdnRoot, aliasSubpath);
+
+    if (options.manifestOnly) {
+      await ensureDirectoryExists(aliasDir);
+    } else {
+      await rm(aliasDir, { recursive: true, force: true });
+      await mkdir(aliasDir, { recursive: true });
+      await cp(targetDir, aliasDir, { recursive: true });
+    }
+
+    const aliasManifest = buildManifest(version, aliasSubpath, assets);
+    await writeManifestFile(aliasDir, aliasManifest);
+    console.log(`Updated latest alias at /${aliasSubpath}`);
+  }
 
   console.log(`Published embed assets for ${version}`);
   console.log(`CDN path: /${cdnSubpath}`);

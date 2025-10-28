@@ -56,8 +56,8 @@ describe('Next.js embed host page', () => {
     delete (window as unknown as { EventsHubEmbed?: unknown }).EventsHubEmbed;
     process.env.NEXT_PUBLIC_EMBED_SRC = '';
     process.env.NEXT_PUBLIC_EMBED_MODE = 'linked';
-    process.env.NEXT_PUBLIC_CONFIG_URL = 'https://beta.config/events.json';
-    process.env.NEXT_PUBLIC_API_BASE = 'https://beta.api';
+    process.env.NEXT_PUBLIC_CONFIG_URL = 'https://config.townthink.com/config/tenants/demo.json';
+    process.env.NEXT_PUBLIC_API_BASE = 'https://api.townthink.com';
     process.env.NEXT_PUBLIC_PLAN_MODE = 'beta';
   });
 
@@ -81,7 +81,7 @@ describe('Next.js embed host page', () => {
 
   it('loads the external script when NEXT_PUBLIC_EMBED_MODE=external', async () => {
     process.env.NEXT_PUBLIC_EMBED_MODE = 'external';
-    process.env.NEXT_PUBLIC_EMBED_SRC = 'https://cdn.events-hub.dev/embed.js';
+    process.env.NEXT_PUBLIC_EMBED_SRC = 'https://cdn.townthink.com/hub-embed@latest/hub-embed.umd.js';
 
     const originalAppendChild = document.head.appendChild;
     const appendSpy = vi
@@ -106,7 +106,7 @@ describe('Next.js embed host page', () => {
     expect(appendSpy).toHaveBeenCalled();
     const script = document.querySelector('script[data-events-hub-embed]') as HTMLScriptElement;
     expect(script).toBeTruthy();
-    expect(script.src).toContain('https://cdn.events-hub.dev/embed.js');
+    expect(script.src).toContain('https://cdn.townthink.com/hub-embed@latest/hub-embed.umd.js');
     appendSpy.mockRestore();
   });
 });
