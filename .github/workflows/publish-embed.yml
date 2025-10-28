@@ -1,0 +1,114 @@
+name: Publish embed release
+
+on:
+  push:
+    tags:
+      - 'embed-sdk@*'
+
+jobs:
+  publish:
+    if: secrets.VERCEL_TOKEN != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_CDN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Extract version
+        id: version
+        run: |
+          ref_name="${GITHUB_REF_NAME}"
+          version="${ref_name#embed-sdk@}"
+          minor="${version%.*}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "minor=$minor" >> "$GITHUB_OUTPUT"
+      - name: Validate package version
+        run: |
+          PKG_VERSION=$(node -p "require('./packages/embed-sdk/package.json').version")
+          if [ "$PKG_VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "Package version $PKG_VERSION does not match tag ${{ steps.version.outputs.version }}" >&2
+            exit 1
+          fi
+      - name: Build embed SDK
+        run: pnpm --filter @events-hub/embed-sdk build
+      - name: Publish immutable assets
+        run: |
+          pnpm tsx scripts/publish-embed.ts \
+            --version "${{ steps.version.outputs.version }}" \
+            --cdn-subpath "hub-embed@${{ steps.version.outputs.version }}" \
+            --manifest-name "${{ steps.version.outputs.version }}" \
+            --skip-latest
+      - name: Generate SBOM
+        run: pnpm -w security:sbom
+      - name: Generate provenance
+        run: pnpm -w security:provenance
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: embed-sdk-sbom-${{ steps.version.outputs.version }}
+          path: .sbom
+      - name: Upload provenance artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: embed-sdk-provenance-${{ steps.version.outputs.version }}
+          path: provenance
+      - name: Deploy to CDN
+        id: deploy
+        working-directory: apps/cdn
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Missing Vercel credentials for CDN deployment." >&2
+            exit 1
+          fi
+
+          mkdir -p .vercel
+          cat <<JSON > .vercel/project.json
+          {"orgId":"${VERCEL_ORG_ID}","projectId":"${VERCEL_PROJECT_ID}"}
+          JSON
+
+          pnpm dlx vercel pull --yes --environment=production --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          pnpm dlx vercel build --prod --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          response=$(pnpm dlx vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --yes --archive=tgz --json)
+          url=$(echo "$response" | jq -r '.url')
+          if [ -z "$url" ] || [ "$url" = "null" ]; then
+            echo "Failed to parse CDN deployment URL." >&2
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run embed smoke tests
+        env:
+          EMBED_CDN_BASE_URL: ${{ secrets.CDN_PROD_BASE_URL }}
+          EMBED_CDN_PATH: hub-embed@${{ steps.version.outputs.version }}
+          EMBED_MANIFEST_URL: ${{ secrets.CDN_PROD_BASE_URL }}/manifest/${{ steps.version.outputs.version }}.json
+        run: pnpm exec playwright test tooling/tests/smoke/embed.spec.ts
+      - name: Update minor latest manifest
+        run: |
+          pnpm tsx scripts/publish-embed.ts \
+            --version "${{ steps.version.outputs.version }}" \
+            --cdn-subpath "hub-embed@${{ steps.version.outputs.version }}" \
+            --manifest-prefix "v${{ steps.version.outputs.minor }}" \
+            --manifest-name "${{ steps.version.outputs.version }}" \
+            --latest-alias latest \
+            --manifest-only
+      - name: Publish summary
+        run: |
+          echo "## Embed release published" >> "$GITHUB_STEP_SUMMARY"
+          echo "* Version: ${{ steps.version.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "* Deployment: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "* Minor channel updated: v${{ steps.version.outputs.minor }}" >> "$GITHUB_STEP_SUMMARY"
