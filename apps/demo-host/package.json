@@ -3,18 +3,16 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "next dev --hostname demo.localhost",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
     "test": "vitest run"
   },
   "dependencies": {
+    "@events-hub/embed-sdk": "workspace:*",
+    "next": "14.2.3",
     "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "@events-hub/embed-sdk": "workspace:*"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "4.2.1",
-    "vite": "5.2.9"
+    "react-dom": "18.2.0"
   }
 }

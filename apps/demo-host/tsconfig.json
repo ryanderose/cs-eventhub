@@ -1,7 +1,16 @@
 {
   "extends": "../../tooling/config/tsconfig.base.json",
   "compilerOptions": {
-    "jsx": "react-jsx"
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "declaration": false,
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
-  "include": ["src/**/*"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.mjs", "**/*.cjs"],
+  "exclude": ["node_modules"]
 }
