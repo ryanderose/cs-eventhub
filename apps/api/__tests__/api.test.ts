@@ -32,12 +32,14 @@ let composeHandler: (request: Request) => Promise<Response>;
 let fragmentHandler: (request: Request) => Promise<Response>;
 let interpretHandler: any;
 let planHandler: any;
+let configHandler: any;
 
 beforeAll(async () => {
   composeHandler = (await import('../api/v1/compose')).default;
   fragmentHandler = (await import('../api/v1/fragment')).default;
   interpretHandler = (await import('../api/v1/interpret')).default;
   planHandler = (await import('../api/v1/plan/[id]')).default;
+  configHandler = (await import('../api/config/tenants/[tenant]')).default;
 });
 
 beforeEach(() => {
@@ -134,5 +136,50 @@ describe('node interpreter', () => {
     await interpretHandler(req, res);
     expect(responsePayload.status).toBe(200);
     expect(responsePayload.body).toHaveProperty('filters');
+  });
+});
+
+describe('tenant config endpoint', () => {
+  it('returns the demo tenant config with signature when configured', async () => {
+    process.env.CONFIG_SIGNING_SECRET = 'test-secret';
+
+    const jsonPayload: any = {};
+    const res = {
+      status(code: number) {
+        jsonPayload.status = code;
+        return this;
+      },
+      json(payload: unknown) {
+        jsonPayload.body = payload;
+      },
+      setHeader() {},
+      end() {}
+    } as any;
+
+    await configHandler({
+      method: 'GET',
+      query: { tenant: 'demo' },
+      headers: {}
+    } as any, res);
+
+    expect(jsonPayload.status).toBe(200);
+    expect(jsonPayload.body).toHaveProperty('config.manifestUrl');
+    expect(jsonPayload.body).toHaveProperty('signature');
+
+    delete process.env.CONFIG_SIGNING_SECRET;
+  });
+
+  it('returns 404 for unknown tenants', async () => {
+    const res = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
+      setHeader() {},
+      end() {}
+    } as any;
+
+    await configHandler({ method: 'GET', query: { tenant: 'nope' }, headers: {} } as any, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('Unknown tenant') }));
   });
 });
