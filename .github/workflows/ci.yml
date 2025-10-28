@@ -36,6 +36,8 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID_DEMO_HOST: ${{ secrets.VERCEL_PROJECT_ID_DEMO_HOST }}
+      VERCEL_PROJECT_ID_API: ${{ secrets.VERCEL_PROJECT_ID_API }}
     outputs:
       demo_url: ${{ steps.deploy_demo.outputs.url }}
       api_url: ${{ steps.deploy_api.outputs.url }}
@@ -45,11 +47,11 @@ jobs:
         run: |
           echo "Vercel preview deployments skipped because VERCEL_TOKEN and/or VERCEL_ORG_ID are not configured." >> "$GITHUB_STEP_SUMMARY"
       - name: Report missing demo host project ID
-        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID_DEMO_HOST == '' }}
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID_DEMO_HOST == '' }}
         run: |
           echo "Demo host preview deployment skipped because VERCEL_PROJECT_ID_DEMO_HOST is not configured." >> "$GITHUB_STEP_SUMMARY"
       - name: Report missing API project ID
-        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID_API == '' }}
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID_API == '' }}
         run: |
           echo "API preview deployment skipped because VERCEL_PROJECT_ID_API is not configured." >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
@@ -66,10 +68,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
         if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' }}
       - name: Deploy demo host preview
-        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID_DEMO_HOST != '' }}
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID_DEMO_HOST != '' }}
         id: deploy_demo
         env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_DEMO_HOST }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID_DEMO_HOST }}
         run: |
           if [ -z "$VERCEL_PROJECT_ID" ]; then
             echo "Missing Vercel project ID for demo host preview." >&2
@@ -94,10 +96,10 @@ jobs:
 
           echo "Demo host preview: $url" >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy API preview
-        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID_API != '' }}
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID_API != '' }}
         id: deploy_api
         env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID_API }}
         run: |
           if [ -z "$VERCEL_PROJECT_ID" ]; then
             echo "Missing Vercel project ID for API preview." >&2
