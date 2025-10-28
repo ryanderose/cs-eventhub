@@ -1,0 +1,50 @@
+name: Refresh pnpm lockfile
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch to refresh the pnpm lockfile on
+        required: true
+  pull_request_target:
+    types:
+      - labeled
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: 18.19.0
+  PNPM_VERSION: 8.15.4
+  TARGET_LABEL: refresh-lockfile
+
+jobs:
+  refresh:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == env.TARGET_LABEL
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.event.pull_request.head.ref }}
+          repository: ${{ github.event_name == 'workflow_dispatch' && github.repository || github.event.pull_request.head.repo.full_name }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Refresh pnpm lockfile
+        run: pnpm install --lockfile-only
+
+      - name: Commit lockfile
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: chore: refresh pnpm-lock.yaml
+          file_pattern: pnpm-lock.yaml
