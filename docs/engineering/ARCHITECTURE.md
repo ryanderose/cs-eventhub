@@ -6,3 +6,5 @@
 - Next.js apps share a hardened config: `reactStrictMode` enabled, experimental flags limited to `typedRoutes` and
   `serverComponentsExternalPackages` (currently only `@events-hub/embed-sdk`), and removed options such as
   `trustHostHeader` **must not** be reintroduced.
+- Every Next.js package must commit a local `.eslintrc` that extends `next/core-web-vitals` so CI lint runs in
+  non-interactive mode without trying to bootstrap defaults.
