@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { EmbedConfig, EmbedHandle } from '@events-hub/embed-sdk';
 import type { PageDoc } from '@events-hub/page-schema';
 import { getApiBase, getConfigUrl, getEmbedMode, getEmbedSrc, getPlanMode } from '../lib/env';
@@ -35,9 +35,9 @@ const samplePage: PageDoc = {
 
 function resolveGlobalModule(): EmbedModule | undefined {
   if (typeof window === 'undefined') return undefined;
-  const module = window.EventsHubEmbed;
-  if (module && typeof module.create === 'function') {
-    return module;
+  const embedModule = window.EventsHubEmbed;
+  if (embedModule && typeof embedModule.create === 'function') {
+    return embedModule;
   }
   return undefined;
 }
@@ -56,9 +56,9 @@ async function loadExternalModule(src: string): Promise<EmbedModule> {
 
   return new Promise<EmbedModule>((resolve, reject) => {
     const onReady = () => {
-      const module = resolveGlobalModule();
-      if (module) {
-        resolve(module);
+      const embedModule = resolveGlobalModule();
+      if (embedModule) {
+        resolve(embedModule);
       } else {
         reject(new Error('The embed SDK failed to register the expected global.'));
       }
@@ -102,8 +102,8 @@ async function loadEmbedModule(mode: ReturnType<typeof getEmbedMode>, src: strin
   return import('@events-hub/embed-sdk/dist/index.esm.js');
 }
 
-function bootstrapEmbed(container: HTMLDivElement, module: EmbedModule) {
-  return module.create({
+function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule) {
+  return embedModule.create({
     container,
     tenantId: samplePage.tenantId,
     initialPlan: samplePage,
@@ -132,11 +132,11 @@ export default function Page() {
         return;
       }
       try {
-        const module = await loadEmbedModule(embedMode, embedSrc);
+        const embedModule = await loadEmbedModule(embedMode, embedSrc);
         if (destroyed || !containerRef.current) {
           return;
         }
-        handle = bootstrapEmbed(containerRef.current, module);
+        handle = bootstrapEmbed(containerRef.current, embedModule);
         setStatus('Embed ready');
       } catch (error) {
         console.error(error);
