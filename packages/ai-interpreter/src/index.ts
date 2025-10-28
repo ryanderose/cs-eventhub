@@ -1,7 +1,21 @@
 import { z } from 'zod';
 
+type TokenField =
+  | keyof FilterDSL
+  | 'text'
+  | 'date'
+  | 'daterange'
+  | 'category'
+  | 'categories'
+  | 'distance'
+  | 'distancekm'
+  | 'neighborhood'
+  | 'neighborhoods'
+  | 'family'
+  | 'familyfriendly';
+
 type Token = {
-  field: keyof FilterDSL | 'text';
+  field: TokenField;
   operator: ':' | '>=' | '<=' | '=' | '~';
   value: string;
 };
@@ -173,5 +187,5 @@ export function interpret(query: string): InterpreterResult {
   const baseFilters: FilterDSL = {};
   const filters = tokens.reduce(applyToken, baseFilters);
   const normalized = FILTER_SCHEMA.parse({ intent: inferIntent(filters, query), filters });
-  return { ...normalized, tokens };
+  return { ...normalized, tokens, version: 'dsl/1.1' };
 }
