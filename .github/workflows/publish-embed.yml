@@ -5,17 +5,22 @@ on:
     tags:
       - 'embed-sdk@*'
 
+env:
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID_CDN: ${{ secrets.VERCEL_PROJECT_ID_CDN }}
+
 jobs:
   publish:
-    if: secrets.VERCEL_TOKEN != ''
+    if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID_CDN != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_CDN }}
+      VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID_CDN }}
     steps:
       - uses: actions/checkout@v4
         with:

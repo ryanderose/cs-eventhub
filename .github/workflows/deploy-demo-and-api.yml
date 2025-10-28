@@ -19,9 +19,23 @@ on:
         required: true
         type: string
 
+env:
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID_DEMO_HOST: ${{ secrets.VERCEL_PROJECT_ID_DEMO_HOST }}
+  VERCEL_PROJECT_ID_API: ${{ secrets.VERCEL_PROJECT_ID_API }}
+  DEMO_BETA_ALIAS: ${{ secrets.DEMO_BETA_ALIAS }}
+  DEMO_PROD_ALIAS: ${{ secrets.DEMO_PROD_ALIAS }}
+  API_BETA_ALIAS: ${{ secrets.API_BETA_ALIAS }}
+  API_PROD_ALIAS: ${{ secrets.API_PROD_ALIAS }}
+  SMOKE_TENANT: ${{ secrets.SMOKE_TENANT }}
+  CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
+  CLICKHOUSE_USER: ${{ secrets.CLICKHOUSE_USER }}
+  CLICKHOUSE_PASSWORD: ${{ secrets.CLICKHOUSE_PASSWORD }}
+
 jobs:
   promote:
-    if: secrets.VERCEL_TOKEN != ''
+    if: ${{ env.VERCEL_TOKEN != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,18 +43,18 @@ jobs:
       TARGET_ENVIRONMENT: ${{ inputs.environment }}
       DEMO_DEPLOYMENT_URL: ${{ inputs.demo_deployment_url }}
       API_DEPLOYMENT_URL: ${{ inputs.api_deployment_url }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID_DEMO: ${{ secrets.VERCEL_PROJECT_ID_DEMO_HOST }}
-      VERCEL_PROJECT_ID_API: ${{ secrets.VERCEL_PROJECT_ID_API }}
-      DEMO_BETA_ALIAS: ${{ secrets.DEMO_BETA_ALIAS }}
-      DEMO_PROD_ALIAS: ${{ secrets.DEMO_PROD_ALIAS }}
-      API_BETA_ALIAS: ${{ secrets.API_BETA_ALIAS }}
-      API_PROD_ALIAS: ${{ secrets.API_PROD_ALIAS }}
-      SMOKE_TENANT: ${{ secrets.SMOKE_TENANT }}
-      CLICKHOUSE_URL: ${{ secrets.CLICKHOUSE_URL }}
-      CLICKHOUSE_USER: ${{ secrets.CLICKHOUSE_USER }}
-      CLICKHOUSE_PASSWORD: ${{ secrets.CLICKHOUSE_PASSWORD }}
+      VERCEL_TOKEN: ${{ env.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID_DEMO: ${{ env.VERCEL_PROJECT_ID_DEMO_HOST }}
+      VERCEL_PROJECT_ID_API: ${{ env.VERCEL_PROJECT_ID_API }}
+      DEMO_BETA_ALIAS: ${{ env.DEMO_BETA_ALIAS }}
+      DEMO_PROD_ALIAS: ${{ env.DEMO_PROD_ALIAS }}
+      API_BETA_ALIAS: ${{ env.API_BETA_ALIAS }}
+      API_PROD_ALIAS: ${{ env.API_PROD_ALIAS }}
+      SMOKE_TENANT: ${{ env.SMOKE_TENANT }}
+      CLICKHOUSE_URL: ${{ env.CLICKHOUSE_URL }}
+      CLICKHOUSE_USER: ${{ env.CLICKHOUSE_USER }}
+      CLICKHOUSE_PASSWORD: ${{ env.CLICKHOUSE_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
