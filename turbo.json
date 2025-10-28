@@ -13,7 +13,8 @@
       "outputs": []
     },
     "dev": {
-      "cache": false
+      "cache": false,
+      "dependsOn": []
     },
     "check:a11y": {
       "dependsOn": ["build"],

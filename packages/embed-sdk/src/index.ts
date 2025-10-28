@@ -1,5 +1,6 @@
 import type { PageDoc } from '@events-hub/page-schema';
 import { encodePlan } from '@events-hub/router-helpers';
+import { baseTokens, createShadowThemeCss, type TokenMap } from './theme';
 
 export type EmbedConfig = {
   container: HTMLElement;
@@ -31,45 +32,38 @@ export type EmbedHandle = {
 type Listener<Event extends keyof SdkEventMap> = (payload: SdkEventMap[Event]) => void;
 
 class EventEmitter {
-  private listeners = new Map<keyof SdkEventMap, Set<Listener<any>>>();
+  private listeners = new Map<keyof SdkEventMap, Set<Listener<keyof SdkEventMap>>>();
 
-  on<Event extends keyof SdkEventMap>(event: Event, listener: Listener<Event>): void {
+  private ensureListenerSet<Event extends keyof SdkEventMap>(event: Event): Set<Listener<Event>> {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-    this.listeners.get(event)!.add(listener as Listener<any>);
+    return this.listeners.get(event)! as Set<Listener<Event>>;
+  }
+
+  on<Event extends keyof SdkEventMap>(event: Event, listener: Listener<Event>): void {
+    this.ensureListenerSet(event).add(listener);
   }
 
   off<Event extends keyof SdkEventMap>(event: Event, listener: Listener<Event>): void {
-    this.listeners.get(event)?.delete(listener as Listener<any>);
+    const listeners = this.listeners.get(event) as Set<Listener<Event>> | undefined;
+    listeners?.delete(listener);
   }
 
   emit<Event extends keyof SdkEventMap>(event: Event, payload: SdkEventMap[Event]): void {
-    for (const listener of this.listeners.get(event) ?? []) {
-      listener(payload);
-    }
+    const listeners = this.listeners.get(event) as Set<Listener<Event>> | undefined;
+    listeners?.forEach((listener) => listener(payload));
   }
+}
+
+function resolveTokens(theme: Record<string, string> = {}): TokenMap {
+  return { ...baseTokens, ...theme } satisfies TokenMap;
 }
 
 function applyShadowStyles(root: ShadowRoot, theme: Record<string, string> = {}): void {
   const style = document.createElement('style');
-  const tokens = {
-    '--eh-color-bg': '#0b1120',
-    '--eh-color-text': '#f8fafc',
-    '--eh-font-family': "'Inter', system-ui, sans-serif",
-    ...theme
-  };
-  const tokenCss = Object.entries(tokens)
-    .map(([key, value]) => `${key}: ${value};`)
-    .join(' ');
-  style.textContent = `:host{${tokenCss}}
-  *, *::before, *::after { box-sizing: border-box; font-family: var(--eh-font-family); }
-  section[data-block]{ margin: 1rem 0; padding: 1rem; border-radius: 0.75rem; background: rgba(15,23,42,0.6); color: var(--eh-color-text); }
-  h2{ font-size: 1.25rem; margin: 0 0 0.5rem; }
-  ul{ margin: 0; padding-left: 1.25rem; }
-  button{ border-radius: 999px; border: 1px solid rgba(148,163,184,0.3); background: transparent; color: inherit; padding: 0.5rem 1rem; cursor: pointer; }
-  button:focus{ outline: 2px solid #38bdf8; outline-offset: 2px; }
-  `;
+  const tokens = resolveTokens(theme);
+  style.textContent = createShadowThemeCss(tokens);
   root.appendChild(style);
 }
 
@@ -216,3 +210,5 @@ export function create({ container, tenantId, initialPlan, theme }: EmbedConfig)
 
   return handle;
 }
+
+export { baseTokens } from './theme';
