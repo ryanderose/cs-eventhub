@@ -3,8 +3,8 @@ import { createReadStream } from 'node:fs';
 import { access, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-const host = 'cdn.localhost';
-const port = 5050;
+const host = 'localhost';
+const port = 5173;
 const distDir = path.resolve('packages/embed-sdk/dist');
 
 const mimeTypes: Record<string, string> = {
@@ -56,7 +56,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   const urlPath = req.url ? decodeURIComponent(req.url.split('?')[0]) : '/';
-  const filePath = resolvePath(urlPath === '/' ? 'index.esm.js' : urlPath);
+  const filePath = resolvePath(urlPath === '/' ? 'hub-embed.umd.js' : urlPath);
 
   if (!filePath.startsWith(distDir)) {
     res.writeHead(400, { 'Content-Type': 'text/plain' });

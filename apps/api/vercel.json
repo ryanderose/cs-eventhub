@@ -1,49 +1,45 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "alias": ["api.events-hub.dev", "beta-api.events-hub.dev", "preview-api.events-hub.dev"],
+  "alias": [
+    "api.townthink.com",
+    "config.townthink.com",
+    "cs-eventhub-api.vercel.app"
+  ],
   "functions": {
     "api/v1/compose.ts": { "runtime": "edge", "maxDuration": 15 },
     "api/v1/fragment.ts": { "runtime": "edge" },
     "api/v1/plan/[id].ts": { "runtime": "nodejs20.x" },
     "api/v1/interpret.ts": { "runtime": "nodejs20.x" }
   },
-  "routes": [
+  "rewrites": [
+    { "source": "/v1/compose", "destination": "/api/v1/compose" },
+    { "source": "/v1/fragment/(.*)", "destination": "/api/v1/fragment?tenantId=$1" },
+    { "source": "/v1/plan/(.*)", "destination": "/api/v1/plan/$1" },
+    { "source": "/v1/interpret", "destination": "/api/v1/interpret" },
+    { "source": "/config/tenants/(.*)\\.json", "destination": "/api/config/tenants/$1" },
     {
-      "src": "/v1/compose",
-      "dest": "api/v1/compose.ts",
-      "headers": { "Cache-Control": "s-maxage=300, stale-while-revalidate=60" }
-    },
-    {
-      "src": "/v1/fragment/(?<tenantId>[^/]+)",
-      "dest": "api/v1/fragment.ts?tenantId=$tenantId",
-      "headers": { "Cache-Control": "s-maxage=600, stale-while-revalidate=120" }
-    },
-    {
-      "src": "/v1/plan/(?<id>[^/]+)",
-      "dest": "api/v1/plan/[id].ts?id=$id",
-      "headers": { "Cache-Control": "no-store" }
-    },
-    {
-      "src": "/v1/interpret",
-      "dest": "api/v1/interpret.ts",
-      "headers": { "Cache-Control": "no-store" }
+      "source": "/tenants/(.*)\\.json",
+      "destination": "/api/config/tenants/$1",
+      "has": [{ "type": "host", "value": "config.townthink.com" }]
     }
   ],
   "headers": [
     {
       "source": "/(.*)",
-      "has": [{ "type": "host", "value": "preview-api.events-hub.dev" }],
-      "headers": [{ "key": "x-environment", "value": "preview" }]
+      "headers": [
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
     },
     {
       "source": "/(.*)",
-      "has": [{ "type": "host", "value": "beta-api.events-hub.dev" }],
-      "headers": [{ "key": "x-environment", "value": "beta" }]
+      "has": [{ "type": "host", "value": "api.townthink.com" }],
+      "headers": [{ "key": "x-environment", "value": "production" }]
     },
     {
       "source": "/(.*)",
-      "has": [{ "type": "host", "value": "api.events-hub.dev" }],
+      "has": [{ "type": "host", "value": "config.townthink.com" }],
       "headers": [{ "key": "x-environment", "value": "production" }]
     }
   ]

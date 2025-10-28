@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vercel dev --cwd .",
-    "build": "echo 'Static CDN is deployed via Vercel'"
+    "build": "pnpm --filter @events-hub/embed-sdk build && pnpm --dir ../../ publish:embed"
   },
   "devDependencies": {
     "vercel": "33.7.1"

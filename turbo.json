@@ -3,7 +3,7 @@
   "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "build/**", ".ladle-story/**"]
+      "outputs": ["dist/**", "build/**", ".ladle-story/**", ".next/**"]
     },
     "test": {
       "dependsOn": ["build"],
