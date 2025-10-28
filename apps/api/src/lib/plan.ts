@@ -2,6 +2,13 @@ import { canonicalizePageDoc, computePlanHash, type PageDoc } from '@events-hub/
 import { decodePlan as decodePlanDoc, encodePlan as encodePlanDoc } from '@events-hub/router-helpers';
 import { kv } from '@vercel/kv';
 
+type KvClient = {
+  set: (key: string, value: string, options?: { ex?: number }) => Promise<unknown>;
+  get: <T = unknown>(key: string) => Promise<T | null>;
+};
+
+const kvClient = kv as unknown as KvClient;
+
 type MemoryEntry = { encoded: string; expiresAt: number };
 
 type GlobalPlanCache = {
@@ -41,7 +48,7 @@ export function decodePlan(encoded: string) {
 export async function persistEncodedPlan(encoded: string, planHash: string) {
   const key = planKey(planHash);
   if (kvAvailable()) {
-    await kv.set(key, encoded, { ex: TTL_SECONDS });
+    await kvClient.set(key, encoded, { ex: TTL_SECONDS });
   } else {
     const cache = getMemoryCache();
     cache.set(key, { encoded, expiresAt: Date.now() + TTL_SECONDS * 1000 });
@@ -52,7 +59,7 @@ export async function persistEncodedPlan(encoded: string, planHash: string) {
 export async function resolveEncodedPlan(planHash: string) {
   const key = planKey(planHash);
   if (kvAvailable()) {
-    const encoded = await kv.get<string>(key);
+    const encoded = await kvClient.get<string>(key);
     return encoded ?? null;
   }
   const cache = getMemoryCache();
