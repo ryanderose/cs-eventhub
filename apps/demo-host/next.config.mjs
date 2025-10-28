@@ -5,8 +5,7 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     typedRoutes: true,
-    serverComponentsExternalPackages: ['@events-hub/embed-sdk'],
-    trustHostHeader: true
+    serverComponentsExternalPackages: ['@events-hub/embed-sdk']
   },
   eslint: {
     ignoreDuringBuilds: !!process.env.CI
