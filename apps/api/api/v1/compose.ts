@@ -1,3 +1,4 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { compose as runComposer } from '@events-hub/ai-composer';
 import { startSpan } from '../../src/lib/telemetry';
 import {
@@ -7,7 +8,7 @@ import {
   shouldInlinePlan
 } from '../../src/lib/plan';
 
-export const config = { runtime: 'edge', maxDuration: 15 };
+export const config = { runtime: 'nodejs', maxDuration: 15 };
 
 type ComposePayload = {
   tenantId?: string;
@@ -19,59 +20,111 @@ type ComposePayload = {
   composerVersion?: string;
 };
 
-function readJsonBody(request: Request): Promise<ComposePayload> {
-  return request
-    .json()
-    .catch(() => ({}) as ComposePayload);
+type ComposeResponseBody = Record<string, unknown> & {
+  encodedPlan?: string;
+  shortId?: string;
+};
+
+type CachedComposeEntry = {
+  body: ComposeResponseBody;
+  headers: Record<string, string>;
+  status: number;
+  expiresAt: number;
+};
+
+type ComposeCacheStore = {
+  __composeCache?: Map<string, CachedComposeEntry>;
+};
+
+const CACHE_TTL_MS = 300_000;
+
+function getComposeCache(): Map<string, CachedComposeEntry> {
+  const globalStore = globalThis as typeof globalThis & ComposeCacheStore;
+  if (!globalStore.__composeCache) {
+    globalStore.__composeCache = new Map();
+  }
+  return globalStore.__composeCache;
 }
 
-function buildJsonResponse(body: unknown, cacheKey: string | null) {
-  const headers = new Headers({
-    'Content-Type': 'application/json; charset=utf-8'
+function readJsonBody(req: VercelRequest): ComposePayload {
+  if (!req.body) {
+    return {} as ComposePayload;
+  }
+  if (typeof req.body === 'object') {
+    return req.body as ComposePayload;
+  }
+  if (typeof Buffer !== 'undefined' && Buffer.isBuffer(req.body)) {
+    try {
+      return JSON.parse(req.body.toString('utf-8')) as ComposePayload;
+    } catch {
+      return {} as ComposePayload;
+    }
+  }
+  if (typeof req.body === 'string') {
+    try {
+      return JSON.parse(req.body) as ComposePayload;
+    } catch {
+      return {} as ComposePayload;
+    }
+  }
+  return {} as ComposePayload;
+}
+
+function readCachedResponse(cacheKey: string | null): CachedComposeEntry | null {
+  if (!cacheKey) return null;
+  const cache = getComposeCache();
+  const entry = cache.get(cacheKey);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    cache.delete(cacheKey);
+    return null;
+  }
+  return entry;
+}
+
+function writeCachedResponse(
+  cacheKey: string | null,
+  body: ComposeResponseBody,
+  headers: Record<string, string>,
+  status: number
+) {
+  if (!cacheKey) return;
+  const cache = getComposeCache();
+  cache.set(cacheKey, {
+    body,
+    headers,
+    status,
+    expiresAt: Date.now() + CACHE_TTL_MS
   });
-  if (cacheKey) {
-    headers.set('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
-    headers.set('X-Composer-Cache-Key', cacheKey);
-  } else {
-    headers.set('Cache-Control', 'no-store');
-  }
-  return new Response(JSON.stringify(body), { status: 200, headers });
 }
 
-async function matchEdgeCache(cacheKey: string | null) {
-  if (!cacheKey || typeof caches === 'undefined') {
-    return null;
-  }
-  try {
-    return await caches.default.match(cacheKey);
-  } catch {
-    return null;
-  }
+function sendJson(
+  res: VercelResponse,
+  status: number,
+  body: unknown,
+  headers: Record<string, string>
+) {
+  Object.entries(headers).forEach(([key, value]) => {
+    res.setHeader(key, value);
+  });
+  res.status(status).json(body);
 }
 
-async function writeEdgeCache(cacheKey: string | null, response: Response) {
-  if (!cacheKey || typeof caches === 'undefined') {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method Not Allowed' });
     return;
   }
-  try {
-    await caches.default.put(cacheKey, response.clone());
-  } catch {
-    // ignore cache write failures
-  }
-}
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-
-  const payload = await readJsonBody(request);
+  const payload = readJsonBody(req);
   const cacheKeyCandidate = buildCacheKey(payload.planHash, payload.composerVersion);
-  const cached = await matchEdgeCache(cacheKeyCandidate);
+  const cached = readCachedResponse(cacheKeyCandidate);
   if (cached) {
-    const headers = new Headers(cached.headers);
-    headers.set('X-Cache', 'HIT');
-    return new Response(cached.body, { status: cached.status, headers });
+    sendJson(res, cached.status, cached.body, {
+      ...cached.headers,
+      'X-Cache': 'HIT'
+    });
+    return;
   }
 
   const span = startSpan('composer.call');
@@ -90,7 +143,7 @@ export default async function handler(request: Request): Promise<Response> {
     span.setAttribute('plan.hash', planHash);
     span.setAttribute('composer.version', result.composerVersion);
 
-    let body: Record<string, unknown> & { encodedPlan?: string; shortId?: string } = {
+    let body: ComposeResponseBody = {
       ...result,
       encodedPlan: encoded
     };
@@ -100,15 +153,30 @@ export default async function handler(request: Request): Promise<Response> {
       body = { ...result, encodedPlan: undefined, shortId };
     }
 
-    const response = buildJsonResponse(body, responseCacheKey);
-    await writeEdgeCache(responseCacheKey, response);
-    return response;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': responseCacheKey
+        ? 's-maxage=300, stale-while-revalidate=60'
+        : 'no-store'
+    };
+
+    if (responseCacheKey) {
+      headers['X-Composer-Cache-Key'] = responseCacheKey;
+    }
+
+    writeCachedResponse(responseCacheKey, body, headers, 200);
+    sendJson(res, 200, body, headers);
   } catch (error) {
     span.setAttribute('composer.error', String(error));
-    return new Response(JSON.stringify({ error: 'compose_failed' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
-    });
+    sendJson(
+      res,
+      500,
+      { error: 'compose_failed' },
+      {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store'
+      }
+    );
   } finally {
     span.end();
   }
