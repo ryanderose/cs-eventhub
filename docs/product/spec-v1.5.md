@@ -13,7 +13,7 @@
 ## 0) Δ What changed (v1.4 → v1.5)
 
 1) **AI Plan Composer (new, server):** `POST /v1/compose` converts the Filter/AI DSL into a **minimal `PageDoc`** with per‑block cursors and **progressive section hydration**. SDK now emits `sdk.blockHydrated` and `sdk.blockDepleted`.
-2) **URL‑persisted plans (new):** Deep links via `?plan=<base64url(zstd(json))>`. If >2,048 chars, fallback to `?p=<shortId>` stored server‑side. Deterministic **`planHash`**.
+2) **URL‑persisted plans (new):** Deep links via `?plan=<encodedPlan>` where payloads are prefixed (`z:` Zstd, `b:` Brotli, `p:` plain). If `encodedPlan` exceeds **2,048 chars**, fallback to `?p=<shortId>` bound to the plan’s SHA‑256 **`planHash`**.
 3) **Map Grid block (new):** Optional list ↔ map toggle with clustered pins and **non‑map a11y fallback**. Virtualized list, keyboardable markers.
 4) **Sponsor/House Promo block (new):** First‑class `promo-slot` with measurement hooks (impression/in‑view/click), frequency caps, tenant safety rails.
 5) **Ranking diversity (new):** Venue/day/category constraints for healthier rows; tenant overrides supported.
@@ -319,12 +319,17 @@ export type AiQuery = {
 ## 8) URL‑Persisted Plan (new)
 
 ### 8.1 Encoding
-- `?plan=<base64url(zstd(JSON.stringify({dsl, meta})))>`
-- If length > **2,048 chars**, server stores and returns `?p=<shortId>` (base62 8–12).
+- `encodePlan(PageDoc)` (see `packages/router-helpers`) emits `<prefix>:<base64url(payload)>`:
+  - `z:` — Zstandard level 3 (preferred when optional native binding available).
+  - `b:` — Brotli (Node `brotliCompressSync`) fallback when Zstd unavailable.
+  - `p:` — Plain UTF‑8 JSON when no compression bindings exist.
+- Inline budget: if the resulting string is ≤ **2,048 chars**, it is returned as `encodedPlan` and pushed to the URL query as `plan=`.
+- If the payload exceeds the inline budget, the API stores it server‑side and responds with `shortId = planHash` for `?p=` links.
 
 ### 8.2 Canonicalization
 - Normalize date presets, sort, and category aliases before hashing.
-- `planHash = sha1(normalizedPlan)` → `PageDoc.meta.planHash`.
+- Canonicalization sorts block orders/keys, meta flags, and cursors; hash input is stable JSON.
+- `planHash = base64url(sha256(canonicalPageDoc))` → `PageDoc.meta.planHash` and the persisted `shortId`.
 - Helpers:
 ```ts
 export function encodePlan(plan: object): string;
@@ -333,6 +338,71 @@ export function decodePlan(param: string): object;
 
 ### 8.3 SEO
 - Personalized/AI plans **noindex**; canonical to equivalent non‑AI routes when available.
+
+### 8.4 API delivery examples
+
+```http
+POST /v1/compose
+Content-Type: application/json
+
+{
+  "tenantId": "demo",
+  "intent": "search",
+  "filters": { "categories": ["music"], "date": { "preset": "this-weekend" } }
+}
+
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: s-maxage=300, stale-while-revalidate=60
+
+{
+  "composerVersion": "1.5.2",
+  "page": { "...PageDoc...", "meta": { "planHash": "k1nYx2..." } },
+  "cursors": { "hero": "cursor123" },
+  "encodedPlan": "z:KLUv/QBQ..."
+}
+```
+
+> Inline example: `encodedPlan` stays under the 2 kB limit and can be embedded directly in the URL.
+
+```http
+POST /v1/compose
+Content-Type: application/json
+
+{
+  "tenantId": "demo",
+  "intent": "search",
+  "filters": { "categories": ["festival"], "date": { "range": { "from": "2024-06-01", "to": "2024-07-15" } } }
+}
+
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: s-maxage=300, stale-while-revalidate=60
+
+{
+  "composerVersion": "1.5.2",
+  "page": { "...PageDoc...", "meta": { "planHash": "Qz4p2Y..." } },
+  "cursors": { "grid": "cursor999" },
+  "shortId": "Qz4p2YjYk7F2bPgX5lmy8X7cQyC6uXy7y9SRVYjN6qM"
+}
+```
+
+> Fallback example: the encoded plan exceeded the inline budget, so the response drops `encodedPlan` and returns the SHA‑256 short ID to be used with `?p=`.
+
+```http
+GET /v1/plan/Qz4p2YjYk7F2bPgX5lmy8X7cQyC6uXy7y9SRVYjN6qM
+
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Cache-Control: no-store
+
+{
+  "encoded": "z:KLUv/...large...",
+  "plan": { "...PageDoc..." }
+}
+```
+
+> Retrieval example: resolving the `shortId` fetches the stored payload alongside its decoded `PageDoc`.
 
 
 ---
