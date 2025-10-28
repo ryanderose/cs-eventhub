@@ -13,9 +13,7 @@ const nextConfig = {
   transpilePackages: ['@events-hub/embed-sdk'],
   experimental: {
     typedRoutes: true,
-    optimizeCss: true,
     isrFlushToDisk: false,
-    trustHostHeader: true,
     serverActions: {
       bodySizeLimit: '2mb'
     }

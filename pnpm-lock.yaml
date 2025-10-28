@@ -86,6 +86,9 @@ importers:
       '@events-hub/embed-sdk':
         specifier: workspace:*
         version: link:../../packages/embed-sdk
+      '@events-hub/page-schema':
+        specifier: workspace:*
+        version: link:../../packages/page-schema
       next:
         specifier: 14.2.3
         version: 14.2.3(@babel/core@7.28.5)(@playwright/test@1.43.1)(react-dom@18.2.0)(react@18.2.0)

@@ -313,9 +313,9 @@ export type PageDoc = z.infer<typeof PageDocSchema>;
 export type PlanCursor = z.infer<typeof PlanCursorSchema>;
 export type EventSummary = z.infer<typeof EventSummarySchema>;
 
-function sortObjectKeys(value: unknown): unknown {
+function sortObjectKeys<T>(value: T): T {
   if (Array.isArray(value)) {
-    return value.map(sortObjectKeys);
+    return value.map((item) => sortObjectKeys(item)) as unknown as T;
   }
   if (value && typeof value === 'object') {
     return Object.keys(value as Record<string, unknown>)
@@ -323,17 +323,18 @@ function sortObjectKeys(value: unknown): unknown {
       .reduce<Record<string, unknown>>((acc, key) => {
         acc[key] = sortObjectKeys((value as Record<string, unknown>)[key]);
         return acc;
-      }, {});
+      }, {}) as T;
   }
   return value;
 }
 
 function canonicalizeBlock(block: BlockInstance): BlockInstance {
-  const sorted = {
+  const data = sortObjectKeys(block.data);
+  const sortedBlock: BlockInstance = {
     ...block,
-    data: sortObjectKeys(block.data) as BlockInstance['data']
-  };
-  return sorted;
+    data
+  } as BlockInstance;
+  return sortedBlock;
 }
 
 export function canonicalizePageDoc(doc: PageDoc): PageDoc {
