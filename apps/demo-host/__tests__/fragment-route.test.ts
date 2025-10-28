@@ -1,8 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createHash } from 'crypto';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createHash, webcrypto as nodeWebCrypto } from 'crypto';
 import { GET, revalidate, runtime } from '../app/(seo)/fragment/[tenant]/route';
 
 const originalFetch = globalThis.fetch;
+
+beforeAll(() => {
+  if (!globalThis.crypto || !('subtle' in globalThis.crypto)) {
+    Object.defineProperty(globalThis, 'crypto', {
+      configurable: true,
+      value: nodeWebCrypto
+    });
+  }
+});
 
 function mockResponse(body: unknown, init?: ResponseInit) {
   return Promise.resolve(new Response(JSON.stringify(body), init));
