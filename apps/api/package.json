@@ -3,16 +3,22 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "echo 'api dev stub'",
-    "build": "echo 'api build stub'",
-    "start": "node src/server.ts",
-    "test": "echo 'api test stub'"
+    "dev": "vercel dev --cwd .",
+    "build": "vercel build --cwd .",
+    "start": "vercel dev --cwd .",
+    "test": "vitest run --config ../../vitest.config.ts --dir ."
   },
   "dependencies": {
     "@events-hub/ai-composer": "workspace:*",
     "@events-hub/ai-interpreter": "workspace:*",
+    "@events-hub/page-schema": "workspace:*",
+    "@events-hub/router-helpers": "workspace:*",
     "@events-hub/security": "workspace:*",
     "@opentelemetry/api": "1.7.0",
-    "fastify": "4.26.2"
+    "@vercel/kv": "1.0.1"
+  },
+  "devDependencies": {
+    "@vercel/node": "3.2.9",
+    "vercel": "33.7.1"
   }
 }
