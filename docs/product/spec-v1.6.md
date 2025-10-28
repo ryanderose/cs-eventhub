@@ -58,14 +58,14 @@ Parallel: **Admin** → **Pages Store** → **Content API** → **Embed SDK**; *
 root/
 ├─ apps/
 │  ├─ admin/         # Next.js 15 (React) — Tenant config, pages, themes, publish
-│  ├─ demo-host/     # Host demo (route takeover + SEO parity)
+│  ├─ demo-host/     # Next.js 15 host demo (route takeover + SEO parity)
 │  └─ api/           # BFF: Config, Content, AI (interpret/compose), Analytics, GeoIP
 ├─ packages/
-│  ├─ ui/            # Radix wrappers, shadcn presets, Portal hook, a11y helpers
-│  ├─ embed-sdk/     # SDK (Shadow DOM; Preact + compat), router, section themes
-│  ├─ block-runtime/ # Renderer & hydration orchestrator
+│  ├─ ui/            # Radix wrappers, shadcn presets, Portal hook, a11y helpers — ships via Vite library mode (UMD + ESM, code-splitting)
+│  ├─ embed-sdk/     # SDK (Shadow DOM; Preact + compat), router, section themes — ships via Vite library mode (UMD + ESM, code-splitting)
+│  ├─ block-runtime/ # Renderer & hydration orchestrator — ships via Vite library mode (UMD + ESM, code-splitting)
 │  ├─ block-registry/# Registry + schemas
-│  ├─ blocks/        # hero, filters, event-list, calendar/*, detail, non-AI layouts, map-grid, promo-slot
+│  ├─ blocks/        # hero, filters, event-list, calendar/*, detail, non-AI layouts, map-grid, promo-slot — ships via Vite library mode (UMD + ESM, code-splitting)
 │  ├─ page-schema/   # Zod + JSON Schema (BlockInstance, PageDoc)
 │  ├─ data-providers/# CitySpark adapter, canonicalizer, cache, rate limiters
 │  ├─ ai-interpreter/# DSL + model router; safety
@@ -535,9 +535,10 @@ Content-Security-Policy:
 
 ## 18) Testing Strategy & CI
 
-- **Unit:** Vitest + RTL; Zod contract tests; provider mapping; timezone/DST fuzz.  
-- **Stories:** Ladle for empty/loading/populated/error + axe for all blocks.  
-- **Network:** MSW for CitySpark; chaos toggles (latency, 429/5xx).  
+- **Unit:** Vitest + RTL; Zod contract tests; provider mapping; timezone/DST fuzz.
+- **Stories:** Ladle for empty/loading/populated/error + axe for all blocks.
+- **Tooling note:** Ladle and block developer surfaces already run on Vite's dev server; the API remains a Node/Edge service and does not adopt Vite.
+- **Network:** MSW for CitySpark; chaos toggles (latency, 429/5xx).
 - **E2E (Playwright):**
   - Embed mount, Shadow DOM, basePath overrides
   - Back/forward parity, URL filter persistence, deep‑link detail
