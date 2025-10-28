@@ -38,3 +38,7 @@ Pull requests must pass:
 - CodeQL and supply-chain scans (run via GitHub Actions)
 
 Refer to `.github/pull_request_template.md` for the full gate checklist.
+
+## Lockfile Maintenance
+
+When `pnpm-lock.yaml` diverges between branches, use the **Refresh pnpm lockfile** workflow in GitHub Actions to regenerate it on the affected branch. The workflow can be triggered manually via the `workflow_dispatch` entry by specifying the branch name, or automatically for a pull request by adding the `refresh-lockfile` label. The job will run `pnpm install --lockfile-only` and push the updated lockfile back to the source branch with a `chore: refresh pnpm-lock.yaml` commit.
