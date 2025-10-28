@@ -19,7 +19,7 @@ function mockResponse(body: unknown, init?: ResponseInit) {
 
 describe('SEO fragment route', () => {
   beforeEach(() => {
-    process.env.NEXT_PUBLIC_API_BASE = 'https://api.events-hub.dev';
+    process.env.NEXT_PUBLIC_API_BASE = 'https://api.townthink.com';
   });
 
   afterEach(() => {

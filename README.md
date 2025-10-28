@@ -11,7 +11,7 @@ pnpm -w test
 pnpm dev:stack
 ```
 
-`pnpm dev:stack` starts the demo host, Vercel API emulator, config service, embed watcher, and local CDN server in parallel.
+`pnpm dev:stack` starts the demo host, Vercel API emulator (with config routes), embed watcher, and local CDN server in parallel.
 
 ## Repository Highlights
 

@@ -26,7 +26,7 @@ jobs:
       - run: pnpm -w security:provenance
 
   vercel-preview:
-    if: github.event_name == 'pull_request' && secrets.VERCEL_TOKEN != ''
+    if: github.event_name == 'pull_request'
     name: Vercel preview deployments
     needs: setup
     runs-on: ubuntu-latest
@@ -36,26 +36,45 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID_DEMO_HOST: ${{ secrets.VERCEL_PROJECT_ID_DEMO_HOST }}
+      VERCEL_PROJECT_ID_API: ${{ secrets.VERCEL_PROJECT_ID_API }}
     outputs:
       demo_url: ${{ steps.deploy_demo.outputs.url }}
       api_url: ${{ steps.deploy_api.outputs.url }}
     steps:
+      - name: Report missing Vercel credentials
+        if: ${{ env.VERCEL_TOKEN == '' || env.VERCEL_ORG_ID == '' }}
+        run: |
+          echo "Vercel preview deployments skipped because VERCEL_TOKEN and/or VERCEL_ORG_ID are not configured." >> "$GITHUB_STEP_SUMMARY"
+      - name: Report missing demo host project ID
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID_DEMO_HOST == '' }}
+        run: |
+          echo "Demo host preview deployment skipped because VERCEL_PROJECT_ID_DEMO_HOST is not configured." >> "$GITHUB_STEP_SUMMARY"
+      - name: Report missing API project ID
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID_API == '' }}
+        run: |
+          echo "API preview deployment skipped because VERCEL_PROJECT_ID_API is not configured." >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' }}
       - uses: pnpm/action-setup@v2
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' }}
         with:
           version: 8.15.4
       - uses: actions/setup-node@v4
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' }}
         with:
           node-version: 18.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' }}
       - name: Deploy demo host preview
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID_DEMO_HOST != '' }}
         id: deploy_demo
         env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_DEMO_HOST }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID_DEMO_HOST }}
         run: |
-          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
-            echo "Missing Vercel credentials for demo host preview." >&2
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Missing Vercel project ID for demo host preview." >&2
             exit 1
           fi
 
@@ -77,12 +96,13 @@ jobs:
 
           echo "Demo host preview: $url" >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy API preview
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID_API != '' }}
         id: deploy_api
         env:
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
+          VERCEL_PROJECT_ID: ${{ env.VERCEL_PROJECT_ID_API }}
         run: |
-          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
-            echo "Missing Vercel credentials for API preview." >&2
+          if [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "Missing Vercel project ID for API preview." >&2
             exit 1
           fi
 
@@ -106,7 +126,7 @@ jobs:
 
   vercel-preview-comment:
     needs: vercel-preview
-    if: needs.vercel-preview.result == 'success'
+    if: needs.vercel-preview.result == 'success' && (needs.vercel-preview.outputs.demo_url != '' || needs.vercel-preview.outputs.api_url != '')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
