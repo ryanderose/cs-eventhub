@@ -7,7 +7,7 @@ import {
   shouldInlinePlan
 } from '../../src/lib/plan';
 
-export const config = { runtime: 'edge' };
+export const config = { runtime: 'edge', maxDuration: 15 };
 
 type ComposePayload = {
   tenantId?: string;
