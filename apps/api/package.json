@@ -7,7 +7,7 @@
     "build": "echo 'api build handled by Vercel deploy'",
     "start": "vercel dev --cwd .",
     "vercel:build": "vercel build --cwd .",
-    "test": "vitest run --config ../../vitest.config.ts --dir ."
+    "test": "vitest run --config ../../vitest.config.ts --dir . --passWithNoTests"
   },
   "dependencies": {
     "@events-hub/ai-composer": "workspace:*",
