@@ -1,11 +1,15 @@
 node_modules/
 .pnpm-store/
 dist/
+!/packages/embed-sdk/dist/
+!/packages/embed-sdk/dist/index.esm.js
+!/packages/embed-sdk/dist/index.esm.d.ts
 build/
 .turbo/
 .next/
 .vercel/
 .env*
+!.env.example
 coverage/
 .vscode/
 .DS_Store
