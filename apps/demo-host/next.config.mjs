@@ -4,9 +4,9 @@ const DEFAULT_REVALIDATE_SECONDS = Number.parseInt(process.env.FRAGMENT_REVALIDA
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    typedRoutes: true,
-    serverComponentsExternalPackages: ['@events-hub/embed-sdk']
+    typedRoutes: true
   },
+  transpilePackages: ['@events-hub/embed-sdk'],
   eslint: {
     ignoreDuringBuilds: !!process.env.CI
   },
