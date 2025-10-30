@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
 import { access, cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = path.resolve('.');
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(scriptDir, '..');
 const distDir = path.join(root, 'packages/embed-sdk/dist');
 const cdnRoot = path.join(root, 'apps/cdn/public');
 type PublishOptions = {
