@@ -52,6 +52,21 @@ export default async function handler(request: Request): Promise<Response> {
 
   const tenantId = extractTenantId(new URL(request.url));
   const html = `<div data-tenant="${tenantId}">Fragment placeholder</div>`;
+
+  // Support JSON responses when explicitly requested via Accept header.
+  // This allows hosts (apps/demo-host) to proxy fragments for SEO easily
+  // without changing the default HTML fragment behaviour.
+  const accept = (request.headers.get('accept') || '').toLowerCase();
+  if (accept.includes('application/json')) {
+    const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8' });
+    headers.set('Cache-Control', 's-maxage=600, stale-while-revalidate=120');
+    headers.set('X-Fragment-Tenant', tenantId);
+    return new Response(JSON.stringify({ html, styles: { css: '' } }), {
+      status: 200,
+      headers
+    });
+  }
+
   const response = fragmentResponse(html, { scriptSrc: [], styleSrc: [] });
   response.headers.set('Cache-Control', 's-maxage=600, stale-while-revalidate=120');
   response.headers.set('X-Fragment-Tenant', tenantId);
