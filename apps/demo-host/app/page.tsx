@@ -38,7 +38,7 @@ const sampleEvents = [
     locale: 'en-US',
     timezone: 'UTC'
   }
-] as const;
+];
 
 const samplePage: PageDoc = {
   id: 'demo',
@@ -59,6 +59,7 @@ const samplePage: PageDoc = {
             id: 'date',
             label: 'Date',
             type: 'date',
+            multi: false,
             options: [
               { id: 'today', label: 'Today' },
               { id: 'weekend', label: 'This weekend' }
@@ -68,6 +69,7 @@ const samplePage: PageDoc = {
             id: 'category',
             label: 'Category',
             type: 'category',
+            multi: false,
             options: [
               { id: 'music', label: 'Music' },
               { id: 'community', label: 'Community' }
