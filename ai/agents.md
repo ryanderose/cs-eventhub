@@ -12,3 +12,7 @@
   PageDoc payloads or encoded plans.
 - When guidance conflicts, defer to the product spec → architecture doc → local package
   README hierarchy.
+  
+# ExecPlans
+
+When writing complex features or significant refactors, use an ExecPlan (as described in .ai/PLANS.md) from design to implementation.
