@@ -193,6 +193,13 @@ async function main() {
   const shouldSkipLatest = options.skipLatest === true || skipLatestByEnv;
   const latestAlias = shouldSkipLatest ? null : options.latestAlias ?? 'hub-embed@latest';
 
+  if (latestAlias && !/^[0-9]/u.test(version)) {
+    throw new Error(
+      `Latest alias publishing requires a semver-like version. Got "${version}". ` +
+        'Use a tag that starts with a digit or pass --skip-latest.',
+    );
+  }
+
   let targetDir: string;
   if (options.manifestOnly) {
     targetDir = path.join(cdnRoot, cdnSubpath);
