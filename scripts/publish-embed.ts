@@ -190,15 +190,10 @@ async function main() {
   const cdnSubpath = options.cdnSubpath ?? `hub-embed@${version}`;
   const vercelEnv = readOptionalEnv('VERCEL_ENV');
   const skipLatestByEnv = vercelEnv ? vercelEnv.toLowerCase() !== 'production' : false;
-  const shouldSkipLatest = options.skipLatest === true || skipLatestByEnv;
+  const semverLikeVersion = /^[0-9]/u.test(version);
+  const skipLatestFlag = options.skipLatest === true;
+  const shouldSkipLatest = skipLatestFlag || skipLatestByEnv || !semverLikeVersion;
   const latestAlias = shouldSkipLatest ? null : options.latestAlias ?? 'hub-embed@latest';
-
-  if (latestAlias && !/^[0-9]/u.test(version)) {
-    throw new Error(
-      `Latest alias publishing requires a semver-like version. Got "${version}". ` +
-        'Use a tag that starts with a digit or pass --skip-latest.',
-    );
-  }
 
   let targetDir: string;
   if (options.manifestOnly) {
@@ -232,10 +227,15 @@ async function main() {
     const aliasManifest = buildManifest(version, aliasSubpath, assets);
     await writeManifestFile(aliasDir, aliasManifest);
     console.log(`Updated latest alias at /${aliasSubpath}`);
-  } else if (options.skipLatest === true) {
+  } else if (skipLatestFlag) {
     console.log('Skipped latest alias update because --skip-latest was provided.');
   } else if (skipLatestByEnv) {
     console.log('Skipped latest alias update because VERCEL_ENV is not production.');
+  } else if (!semverLikeVersion) {
+    console.log(
+      `Skipped latest alias update because version "${version}" is not semver-like. ` +
+        'Provide a version that starts with a digit or pass --skip-latest.',
+    );
   }
 }
 

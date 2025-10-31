@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "cdnBasePath": "/hub-embed@0.0.1",
+  "generatedAt": "2025-10-31T01:54:06.143Z",
+  "assets": [
+    {
+      "path": "/hub-embed@0.0.1/hub-embed.umd.js",
+      "filename": "hub-embed.umd.js",
+      "integrity": "sha384-dZfWUW7Q1EA/P5b/yGRTjfpgsq52dWpKhStPnMeB5cQ50MwDJK8ApMWWAs0t8g1+",
+      "size": 5938
+    },
+    {
+      "path": "/hub-embed@0.0.1/index.esm.js",
+      "filename": "index.esm.js",
+      "integrity": "sha384-CZjlZd4Fk4Lz2e1bbG4sgFYhJ70dWM953mc5XEfUJrHDIusvTkyvtAJH4k0Vp4ef",
+      "size": 6676
+    },
+    {
+      "path": "/hub-embed@0.0.1/tokens.css",
+      "filename": "tokens.css",
+      "integrity": "sha384-renpBJwBeI6mWknEEWSeEP19xyRSNKOxL/9YwrIvMezbKoTstpctUZsVQjfa5Qhx",
+      "size": 110
+    }
+  ]
+}
