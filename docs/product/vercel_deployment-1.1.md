@@ -75,6 +75,10 @@ Create **four** Vercel projects pointed at each root directory. Then map domains
 - **Manifest (per version)**: `.../hub-embed@<semver>/manifest.json`
 - **Stable manifest alias**: `https://cdn.townthink.com/hub-embed@latest/manifest.json`
 
+> **Semver tags required:** Production publishes **must** use semver-style tags (`1.2.3`, `2.0.0-beta.1`, etc.) so they match the immutable caching rule and remain permanently cacheable.
+
+`apps/cdn/vercel.json` uses Vercel's [`path-to-regexp`](https://github.com/pillarjs/path-to-regexp) matcher (no negative lookaheads/alternation). The immutable rule matches versioned assets via `/hub-embed@:version([0-9][^/]*)/(.*)`; keep future matchers compatible with these constraints.
+
 > Ensure `publish:embed` writes the **versioned folder** and updates **@latest** atomically.
 
 ---
