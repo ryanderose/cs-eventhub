@@ -1,6 +1,7 @@
-import { canonicalizePageDoc, computePlanHash, type PageDoc } from '@events-hub/page-schema';
+import { canonicalizePageDoc, computePlanHash, PageDocSchema, type PageDoc } from '@events-hub/page-schema';
 import { decodePlan as decodePlanDoc, encodePlan as encodePlanDoc } from '@events-hub/router-helpers';
 import { kv } from '@vercel/kv';
+import { getDefaultPagePointer, setDefaultPageHash, type DefaultPagePointer } from './pages-store';
 
 type KvClient = {
   set: (key: string, value: string, options?: { ex?: number }) => Promise<unknown>;
@@ -56,6 +57,17 @@ export async function persistEncodedPlan(encoded: string, planHash: string) {
   return planHash;
 }
 
+async function persistEncodedPlanPermanent(encoded: string, planHash: string) {
+  const key = planKey(planHash);
+  if (kvAvailable()) {
+    await kvClient.set(key, encoded);
+  } else {
+    const cache = getMemoryCache();
+    cache.set(key, { encoded, expiresAt: Number.POSITIVE_INFINITY });
+  }
+  return planHash;
+}
+
 export async function resolveEncodedPlan(planHash: string) {
   const key = planKey(planHash);
   if (kvAvailable()) {
@@ -81,4 +93,45 @@ export function buildCacheKey(planHash: string | undefined, composerVersion: str
     return null;
   }
   return `compose:${planHash}:${composerVersion}`;
+}
+
+type PersistedDefaultPlan = {
+  canonical: PageDoc;
+  encoded: string;
+  planHash: string;
+  updatedAt: string;
+};
+
+export async function persistDefaultPlan(plan: PageDoc, tenantId: string): Promise<PersistedDefaultPlan> {
+  const timestamp = new Date().toISOString();
+  const parsed = PageDocSchema.parse({ ...plan, updatedAt: timestamp });
+  const canonical = canonicalizePageDoc(parsed);
+  const planHash = computePlanHash(canonical);
+  const hashedCanonical = { ...canonical, meta: { ...canonical.meta, planHash } };
+  const encoded = encodePlanDoc(hashedCanonical);
+  await persistEncodedPlanPermanent(encoded, planHash);
+  const pointer = await setDefaultPageHash(tenantId, planHash, timestamp);
+  return { canonical: hashedCanonical, encoded, planHash, updatedAt: pointer.updatedAt };
+}
+
+type ResolvedDefaultPlan = {
+  plan: PageDoc;
+  encodedPlan: string;
+  planHash: string;
+  updatedAt: string;
+  pointer: DefaultPagePointer;
+};
+
+export async function resolveDefaultPlan(tenantId: string): Promise<ResolvedDefaultPlan | null> {
+  const pointer = await getDefaultPagePointer(tenantId);
+  if (!pointer) {
+    return null;
+  }
+  const encoded = await resolveEncodedPlan(pointer.planHash);
+  if (!encoded) {
+    return null;
+  }
+  const decoded = decodePlanDoc(encoded);
+  const plan = PageDocSchema.parse(decoded);
+  return { plan, encodedPlan: encoded, planHash: pointer.planHash, updatedAt: pointer.updatedAt, pointer };
 }

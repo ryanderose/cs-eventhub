@@ -31,3 +31,16 @@ export type TelemetryEvent = {
 export function formatTelemetryEvent(envelope: AnalyticsEnvelope, payload: SdkEvent): TelemetryEvent {
   return { envelope, payload };
 }
+
+export type AdminDefaultPlanEvent = {
+  type: 'analytics.admin.default_plan.save' | 'analytics.admin.default_plan.fetch';
+  status: 'success' | 'error';
+  planHash: string;
+};
+
+export function recordAdminDefaultPlan(event: AdminDefaultPlanEvent): void {
+  if (process.env.NODE_ENV === 'test') return;
+  if (process.env.DEBUG?.includes('telemetry') || process.env.NODE_ENV !== 'production') {
+    console.info(`[telemetry] ${event.type}`, { status: event.status, planHash: event.planHash });
+  }
+}

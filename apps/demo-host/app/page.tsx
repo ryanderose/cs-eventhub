@@ -5,6 +5,30 @@ import type { EmbedConfig, EmbedHandle } from '@events-hub/embed-sdk';
 import type { PageDoc } from '@events-hub/page-schema';
 import { getApiBase, getConfigUrl, getEmbedMode, getEmbedSrc, getPlanMode } from '../lib/env';
 
+const DEFAULT_TENANT = 'demo';
+
+type DefaultPlanResponse = {
+  plan: PageDoc;
+  encodedPlan: string;
+  planHash: string;
+  updatedAt: string;
+};
+
+type PlanSource = 'api' | 'fallback';
+
+type PlanData = {
+  plan: PageDoc;
+  planHash: string;
+  encodedPlan?: string;
+  source: PlanSource;
+};
+
+const BACKOFF_DELAYS = [250, 500] as const;
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 type EmbedModule = { create(config: EmbedConfig): EmbedHandle };
 
 declare global {
@@ -178,7 +202,7 @@ const samplePage: PageDoc = {
   ],
   updatedAt: nowIso,
   version: '1.5' as const,
-  tenantId: 'demo-tenant',
+  tenantId: 'demo',
   meta: {
     planHash: 'stub',
     composerVersion: 'demo',
@@ -259,11 +283,24 @@ async function loadEmbedModule(mode: ReturnType<typeof getEmbedMode>, src: strin
   return import('@events-hub/embed-sdk/dist/index.esm.js');
 }
 
-function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule) {
+function ensurePlanHash(plan: PageDoc, planHash: string): PageDoc {
+  if (plan.meta?.planHash === planHash) {
+    return plan;
+  }
+  return {
+    ...plan,
+    meta: {
+      ...plan.meta,
+      planHash
+    }
+  };
+}
+
+function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule, plan: PageDoc) {
   return embedModule.create({
     container,
-    tenantId: samplePage.tenantId,
-    initialPlan: samplePage,
+    tenantId: plan.tenantId ?? DEFAULT_TENANT,
+    initialPlan: plan,
     theme: {
       '--eh-color-bg': '#020617',
       '--eh-color-text': '#e2e8f0'
@@ -273,7 +310,11 @@ function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule) {
 
 export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState('Loading embed…');
+  const handleRef = useRef<EmbedHandle | null>(null);
+  const planHashRef = useRef<string | null>(null);
+  const [status, setStatus] = useState('Loading default blocks…');
+  const [planData, setPlanData] = useState<PlanData | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const embedMode = useMemo(() => getEmbedMode(), []);
   const embedSrc = useMemo(() => getEmbedSrc(), []);
   const configUrl = useMemo(() => getConfigUrl(), []);
@@ -281,33 +322,101 @@ export default function Page() {
   const planMode = useMemo(() => getPlanMode(), []);
 
   useEffect(() => {
-    let destroyed = false;
-    let handle: EmbedHandle | undefined;
+    let cancelled = false;
 
-    async function boot() {
-      if (!containerRef.current) {
+    async function fetchPlan() {
+      setStatus('Loading default blocks…');
+      setLoadError(null);
+
+      for (let attempt = 0; attempt <= BACKOFF_DELAYS.length; attempt++) {
+        try {
+          const response = await fetch(`${apiBase}/v1/plan/default?tenantId=${DEFAULT_TENANT}`, { cache: 'no-store' });
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+          const payload = (await response.json()) as DefaultPlanResponse;
+          if (cancelled) return;
+          const normalizedPlan = ensurePlanHash(payload.plan, payload.planHash);
+          setPlanData({
+            plan: normalizedPlan,
+            planHash: payload.planHash,
+            encodedPlan: payload.encodedPlan,
+            source: 'api'
+          });
+          setStatus('Default plan loaded');
+          return;
+        } catch (error) {
+          if (cancelled) return;
+          if (attempt < BACKOFF_DELAYS.length) {
+            await delay(BACKOFF_DELAYS[attempt]);
+            continue;
+          }
+          const message = 'Unable to load default plan. Showing fallback blocks.';
+          setLoadError(message);
+          const fallbackPlan = ensurePlanHash(samplePage, samplePage.meta?.planHash ?? 'fallback');
+          setPlanData({
+            plan: fallbackPlan,
+            planHash: fallbackPlan.meta?.planHash ?? 'fallback',
+            source: 'fallback'
+          });
+          setStatus(message);
+        }
+      }
+    }
+
+    fetchPlan();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBase]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateEmbed() {
+      if (!containerRef.current || !planData) {
         return;
       }
+
+      if (planHashRef.current === planData.planHash) {
+        return;
+      }
+
+      const hydrationStatus = planData.source === 'api' ? 'Hydrating embed…' : 'Hydrating fallback plan…';
+      setStatus(hydrationStatus);
+
       try {
         const embedModule = await loadEmbedModule(embedMode, embedSrc);
-        if (destroyed || !containerRef.current) {
+        if (cancelled || !containerRef.current) {
           return;
         }
-        handle = bootstrapEmbed(containerRef.current, embedModule);
-        setStatus('Embed ready');
+
+        handleRef.current?.destroy();
+        const normalized = ensurePlanHash(planData.plan, planData.planHash);
+        handleRef.current = bootstrapEmbed(containerRef.current, embedModule, normalized);
+        planHashRef.current = planData.planHash;
+        setStatus(planData.source === 'api' ? 'Embed ready' : 'Embed ready (fallback)');
       } catch (error) {
+        if (cancelled) return;
         console.error(error);
         setStatus(error instanceof Error ? error.message : 'Failed to load embed');
       }
     }
 
-    boot();
+    hydrateEmbed();
 
     return () => {
-      destroyed = true;
-      handle?.destroy();
+      cancelled = true;
     };
-  }, [embedMode, embedSrc]);
+  }, [planData, embedMode, embedSrc]);
+
+  useEffect(() => {
+    return () => {
+      handleRef.current?.destroy();
+      handleRef.current = null;
+    };
+  }, []);
 
   return (
     <main>
@@ -326,6 +435,11 @@ export default function Page() {
       <p className="status" role="status" aria-live="polite">
         {status}
       </p>
+      {loadError ? (
+        <p className="status error" role="alert" aria-live="assertive" style={{ color: '#b91c1c' }}>
+          {loadError}
+        </p>
+      ) : null}
       <dl className="status">
         <dt>Embed mode</dt>
         <dd>{embedMode}</dd>

@@ -29,6 +29,14 @@ The API now serves signed config payloads at `http://localhost:3000/config/tenan
 
 Update `apps/api/.env.local` or the corresponding Vercel env vars to point to beta or production manifests, then restart `pnpm --filter @events-hub/api dev`.
 
+## Default plan API
+
+The admin `/blocks` route and demo host now hydrate from the default plan API. To seed the fallback plan locally:
+
+- Run `pnpm --filter @events-hub/api seed:default-plan -- --tenant demo` to persist the static three-block plan and pointer. When KV credentials are not configured the seed falls back to in-memory storage.
+- Fetch `curl http://localhost:3001/v1/plan/default?tenantId=demo | jq '.plan.blocks[].key'` to confirm the API returns `block-one`, `block-who`, and `block-three` with the persisted `planHash`.
+- Saving new block order in the admin UI updates the pointer; the demo host only re-renders when the returned `planHash` changes, avoiding flicker between saves.
+
 ## Publishing embeds to the CDN app
 
 1. Ensure `packages/embed-sdk/package.json` has the desired release version.

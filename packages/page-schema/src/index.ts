@@ -365,3 +365,16 @@ export function withPlanHash(doc: PageDoc): PageDoc {
     meta: { ...doc.meta, planHash: hash }
   };
 }
+
+export const DefaultPlanResponseSchema = z.object({
+  plan: PageDocSchema,
+  encodedPlan: z.string(),
+  planHash: z.string(),
+  updatedAt: z.string()
+});
+
+export type DefaultPlanResponse = z.infer<typeof DefaultPlanResponseSchema>;
+
+export function isDefaultPlanResponse(value: unknown): value is DefaultPlanResponse {
+  return DefaultPlanResponseSchema.safeParse(value).success;
+}
