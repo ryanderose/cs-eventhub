@@ -20,6 +20,22 @@ The demo host supports two loading modes controlled by `NEXT_PUBLIC_EMBED_MODE`:
 
 Toggle `NEXT_PUBLIC_EMBED_MODE` in `apps/demo-host/.env.local` to switch without restarting the server.
 
+## Default plan hydration
+
+The demo host now fetches the default block plan from the API when `NEXT_PUBLIC_PLAN_MODE` is set to `beta` or `prod`. On initial load it renders the embedded sample plan, then hydrates with the API response once available. The status panel in the host shows whether the current view is using the API or fallback data.
+
+- Configure `NEXT_PUBLIC_API_BASE` so the host can call `GET /v1/plan/default`.
+- Set `NEXT_PUBLIC_PLAN_MODE=beta` (default) to enable the fetch, or `NEXT_PUBLIC_PLAN_MODE=sample`/`legacy` to force the inline sample plan.
+- The client retries once (250 ms backoff) before falling back to the sample plan; the status panel reflects the failure.
+
+Seed the default plan pointer before switching to production mode:
+
+```sh
+pnpm --filter @events-hub/api seed:default-plan -- --tenant demo
+```
+
+The script writes the canonical seed plan via the pages-store helpers so the admin UI and demo host read consistent content. Pass `--tenant <id>` to target other tenants.
+
 ## Beta vs production manifests
 
 The API now serves signed config payloads at `http://localhost:3000/config/tenants/<tenant>.json`. Each tenant exposes `manifests.beta` and `manifests.prod` along with the currently selected `embed.manifestUrl`.

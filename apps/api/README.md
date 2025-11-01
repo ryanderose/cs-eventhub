@@ -9,6 +9,7 @@ that depend on Node-only libraries.
 | Route | File | Runtime | Notes |
 | --- | --- | --- | --- |
 | `POST /v1/compose` | `api/v1/compose.ts` | Edge | Caches responses by `planHash` and `composerVersion`. |
+| `GET/PUT /v1/plan/default` | `api/v1/plan/default.ts` | Node | Serves and updates the tenant default block plan using the pages store helpers. |
 | `GET /v1/fragment/:tenantId` | `api/v1/fragment.ts` | Edge | Emits CSP headers and a tenant-specific placeholder. |
 | `GET /v1/plan/:id` | `api/v1/plan/[id].ts` | Node | Resolves stored plans from KV or in-memory cache. |
 | `POST /v1/interpret` | `api/v1/interpret.ts` | Node | Keeps the interpreter in a Node runtime. |
@@ -48,6 +49,16 @@ assembly, and telemetry span management.
    ```sh
    pnpm --filter @events-hub/api test
    ```
+
+## Seeding the default plan
+
+Use the seed script to populate the default plan pointer for a tenant before enabling the admin UI or demo host in a shared environment:
+
+```sh
+pnpm --filter @events-hub/api seed:default-plan -- --tenant demo
+```
+
+Omit the `--tenant` flag to seed the `demo` tenant, or provide a different identifier when preparing staging and production environments. The script reuses the pages-store helpers, so hashes and encoded plans match the API behaviour.
 
 ## Environment variables
 

@@ -1,4 +1,4 @@
-import { canonicalizePageDoc, computePlanHash, type PageDoc } from '@events-hub/page-schema';
+import { canonicalizePageDoc, withPlanHash, type PageDoc } from '@events-hub/page-schema';
 import { decodePlan as decodePlanDoc, encodePlan as encodePlanDoc } from '@events-hub/router-helpers';
 import { kv } from '@vercel/kv';
 
@@ -9,7 +9,7 @@ type KvClient = {
 
 const kvClient = kv as unknown as KvClient;
 
-type MemoryEntry = { encoded: string; expiresAt: number };
+type MemoryEntry = { encoded: string; expiresAt: number | null };
 
 type GlobalPlanCache = {
   __planCache?: Map<string, MemoryEntry>;
@@ -35,9 +35,9 @@ function kvAvailable(): boolean {
 }
 
 export function encodeCanonicalPlan(page: PageDoc) {
-  const canonical = canonicalizePageDoc(page);
+  const canonical = withPlanHash(canonicalizePageDoc(page));
   const encoded = encodePlanDoc(canonical);
-  const planHash = canonical.meta?.planHash ?? computePlanHash(canonical);
+  const planHash = canonical.meta.planHash!;
   return { canonical, encoded, planHash };
 }
 
@@ -45,13 +45,29 @@ export function decodePlan(encoded: string) {
   return decodePlanDoc(encoded);
 }
 
-export async function persistEncodedPlan(encoded: string, planHash: string) {
+type PersistOptions = {
+  ttlSeconds?: number | null;
+};
+
+export async function persistEncodedPlan(
+  encoded: string,
+  planHash: string,
+  options?: PersistOptions
+) {
   const key = planKey(planHash);
+  const ttlSeconds = options?.ttlSeconds ?? TTL_SECONDS;
   if (kvAvailable()) {
-    await kvClient.set(key, encoded, { ex: TTL_SECONDS });
+    if (ttlSeconds == null) {
+      await kvClient.set(key, encoded);
+    } else {
+      await kvClient.set(key, encoded, { ex: ttlSeconds });
+    }
   } else {
     const cache = getMemoryCache();
-    cache.set(key, { encoded, expiresAt: Date.now() + TTL_SECONDS * 1000 });
+    cache.set(key, {
+      encoded,
+      expiresAt: ttlSeconds == null ? null : Date.now() + ttlSeconds * 1000
+    });
   }
   return planHash;
 }
@@ -65,7 +81,7 @@ export async function resolveEncodedPlan(planHash: string) {
   const cache = getMemoryCache();
   const entry = cache.get(key);
   if (!entry) return null;
-  if (entry.expiresAt <= Date.now()) {
+  if (entry.expiresAt !== null && entry.expiresAt <= Date.now()) {
     cache.delete(key);
     return null;
   }

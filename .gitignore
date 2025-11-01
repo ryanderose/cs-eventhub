@@ -18,3 +18,6 @@ playwright-report/
 !apps/config/.env.example
 !apps/demo-host/.env.local
 !apps/demo-host/.env.example
+
+# Turborepo
+.turbo

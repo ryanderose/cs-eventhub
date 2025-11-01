@@ -7,6 +7,9 @@
     "noEmit": true,
     "incremental": true,
     "isolatedModules": true,
+    "paths": {
+      "@events-hub/page-schema": ["../../packages/page-schema/src/index.ts"]
+    },
     "plugins": [
       {
         "name": "next"

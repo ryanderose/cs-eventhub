@@ -11,6 +11,7 @@
   "rewrites": [
     { "source": "/v1/compose", "destination": "/api/v1/compose" },
     { "source": "/v1/fragment/(.*)", "destination": "/api/v1/fragment?tenantId=$1" },
+    { "source": "/v1/plan/default", "destination": "/api/v1/plan/default" },
     { "source": "/v1/plan/(.*)", "destination": "/api/v1/plan/$1" },
     { "source": "/v1/interpret", "destination": "/api/v1/interpret" },
     { "source": "/config/tenants/(.*)\\.json", "destination": "/api/config/tenants/$1" },

@@ -55,11 +55,13 @@ const AccessibilitySchema = z.object({
   role: z.string().optional()
 });
 
+const SUPPORTED_BLOCK_VERSIONS = ['1.5', '1.6'] as const;
+
 const BlockBase = z.object({
   id: z.string(),
   key: z.string(),
   kind: BlockKind,
-  version: z.literal('1.5'),
+  version: z.enum(SUPPORTED_BLOCK_VERSIONS).default('1.6'),
   order: z.number().int().nonnegative(),
   layout: LayoutSchema.default({ fullWidth: true }),
   analytics: AnalyticsSchema.optional(),
@@ -302,7 +304,7 @@ export const PageDocSchema = z.object({
   tenantId: z.string(),
   updatedAt: z.string(),
   expiresAt: z.string().optional(),
-  version: z.literal('1.5'),
+  version: z.enum(SUPPORTED_BLOCK_VERSIONS).default('1.6'),
   blocks: z.array(BlockInstanceSchema),
   meta: PageMetaSchema,
   planCursors: z.array(PlanCursorSchema).default([])

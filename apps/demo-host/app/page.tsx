@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { EmbedConfig, EmbedHandle } from '@events-hub/embed-sdk';
 import type { PageDoc } from '@events-hub/page-schema';
 import { getApiBase, getConfigUrl, getEmbedMode, getEmbedSrc, getPlanMode } from '../lib/env';
+import { createSamplePlan } from '../lib/samplePlan';
+import { useDefaultPlan } from '../lib/useDefaultPlan';
 
 type EmbedModule = { create(config: EmbedConfig): EmbedHandle };
 
@@ -13,182 +15,11 @@ declare global {
   }
 }
 
-const nowIso = new Date().toISOString();
-
-const sampleEvents = [
-  {
-    id: 'evt-1',
-    canonicalId: 'evt-1',
-    name: 'Waterfront Concert Series',
-    venue: { id: 'venue-1', name: 'Pier Theater' },
-    startDate: nowIso,
-    categories: ['music'],
-    source: { provider: 'demo', id: 'evt-1' },
-    locale: 'en-US',
-    timezone: 'UTC'
-  },
-  {
-    id: 'evt-2',
-    canonicalId: 'evt-2',
-    name: 'Saturday Farmers Market',
-    venue: { id: 'venue-2', name: 'Town Square' },
-    startDate: nowIso,
-    categories: ['community'],
-    source: { provider: 'demo', id: 'evt-2' },
-    locale: 'en-US',
-    timezone: 'UTC'
-  }
-];
-
-const samplePage: PageDoc = {
-  id: 'demo',
-  title: 'Demo Page',
-  path: '/demo',
-  description: 'Sample plan rendered by the embed SDK',
-  blocks: [
-    {
-      id: 'filter-bar',
-      key: 'filter-bar',
-      kind: 'filter-bar',
-      version: '1.5',
-      order: 0,
-      layout: { fullWidth: true },
-      data: {
-        facets: [
-          {
-            id: 'date',
-            label: 'Date',
-            type: 'date',
-            multi: false,
-            options: [
-              { id: 'today', label: 'Today' },
-              { id: 'weekend', label: 'This weekend' }
-            ]
-          },
-          {
-            id: 'category',
-            label: 'Category',
-            type: 'category',
-            multi: false,
-            options: [
-              { id: 'music', label: 'Music' },
-              { id: 'community', label: 'Community' }
-            ]
-          }
-        ],
-        active: { date: 'today', category: 'all' },
-        sortOptions: [
-          { id: 'rank', label: 'Recommended', default: true },
-          { id: 'startTimeAsc', label: 'Soonest' }
-        ],
-        flags: { showReset: true, floating: false }
-      }
-    },
-    {
-      id: 'hero-carousel',
-      key: 'hero',
-      kind: 'hero-carousel',
-      version: '1.5',
-      order: 1,
-      layout: { fullWidth: true },
-      data: {
-        items: [
-          {
-            id: 'hero-1',
-            headline: 'Weekend highlights',
-            subhead: 'Top picks around town',
-            image: { url: 'https://picsum.photos/seed/hero1/800/400', alt: 'Weekend highlights' },
-            cta: { label: 'See more', href: '#' }
-          }
-        ],
-        autoplayMs: 8000
-      }
-    },
-    {
-      id: 'rail-1',
-      key: 'rail-1',
-      kind: 'collection-rail',
-      version: '1.5',
-      order: 2,
-      layout: { fullWidth: true },
-      data: {
-        title: 'Top picks',
-        events: sampleEvents as any,
-        layout: 'rail',
-        streaming: { mode: 'initial' }
-      }
-    },
-    {
-      id: 'map',
-      key: 'map',
-      kind: 'map-grid',
-      version: '1.5',
-      order: 3,
-      layout: { fullWidth: true },
-      data: {
-        events: [
-          { ...sampleEvents[0], map: { lat: 47.607, lng: -122.335 }, listIndex: 0 },
-          { ...sampleEvents[1], map: { lat: 47.61, lng: -122.33 }, listIndex: 1 }
-        ] as any,
-        viewport: { center: { lat: 47.608, lng: -122.335 }, zoom: 12 },
-        parityChecksum: 'demo'
-      }
-    },
-    {
-      id: 'promo',
-      key: 'promo',
-      kind: 'promo-slot',
-      version: '1.5',
-      order: 4,
-      layout: { fullWidth: true },
-      data: {
-        slotId: 'demo-home',
-        advertiser: 'House Promo',
-        disclosure: 'Sponsored',
-        measurement: {},
-        safety: { blockedCategories: [], brandSuitability: 'strict' }
-      }
-    },
-    {
-      id: 'detail',
-      key: 'detail',
-      kind: 'event-detail',
-      version: '1.5',
-      order: 5,
-      layout: { fullWidth: true },
-      data: {
-        event: { ...sampleEvents[0], description: 'Outdoor concert by the waterfront.' },
-        layout: 'modal'
-      }
-    },
-    {
-      id: 'mini-chat',
-      key: 'mini-chat',
-      kind: 'event-mini-chat',
-      version: '1.5',
-      order: 6,
-      layout: { fullWidth: true },
-      data: {
-        eventId: 'evt-1',
-        conversationId: 'demo-convo',
-        starterQuestions: ['What makes this event special?'],
-        availability: { requiresConsent: true, personalization: true }
-      }
-    }
-  ],
-  updatedAt: nowIso,
-  version: '1.5' as const,
-  tenantId: 'demo-tenant',
-  meta: {
-    planHash: 'stub',
-    composerVersion: 'demo',
-    generatedAt: nowIso,
-    locale: 'en-US',
-    cacheTags: [],
-    flags: {}
-  },
-  planCursors: []
-};
+const DEFAULT_TENANT_ID = 'demo';
+const EMBED_THEME = {
+  '--eh-color-bg': '#020617',
+  '--eh-color-text': '#e2e8f0'
+} satisfies Record<string, string>;
 
 function resolveGlobalModule(): EmbedModule | undefined {
   if (typeof window === 'undefined') return undefined;
@@ -259,55 +90,117 @@ async function loadEmbedModule(mode: ReturnType<typeof getEmbedMode>, src: strin
   return import('@events-hub/embed-sdk/dist/index.esm.js');
 }
 
-function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule) {
+function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule, plan: PageDoc) {
   return embedModule.create({
     container,
-    tenantId: samplePage.tenantId,
-    initialPlan: samplePage,
-    theme: {
-      '--eh-color-bg': '#020617',
-      '--eh-color-text': '#e2e8f0'
-    }
+    tenantId: plan.tenantId ?? DEFAULT_TENANT_ID,
+    initialPlan: plan,
+    theme: EMBED_THEME
   });
 }
 
 export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState('Loading embed…');
+  const fallbackPlan = useMemo(() => createSamplePlan(), []);
   const embedMode = useMemo(() => getEmbedMode(), []);
   const embedSrc = useMemo(() => getEmbedSrc(), []);
   const configUrl = useMemo(() => getConfigUrl(), []);
   const apiBase = useMemo(() => getApiBase(), []);
   const planMode = useMemo(() => getPlanMode(), []);
+  const { plan, planHash, status: planStatus, source: planSource, error: planError } = useDefaultPlan({
+    apiBase,
+    tenantId: DEFAULT_TENANT_ID,
+    planMode,
+    fallbackPlan
+  });
+  const [embedStatus, setEmbedStatus] = useState<'initializing' | 'ready' | 'error'>('initializing');
+  const [embedError, setEmbedError] = useState<string | null>(null);
+  const handleRef = useRef<EmbedHandle | null>(null);
+  const currentHashRef = useRef<string | null>(null);
+  const initialPlanRef = useRef<PageDoc | null>(null);
+
+  if (!initialPlanRef.current) {
+    initialPlanRef.current = plan;
+  }
 
   useEffect(() => {
-    let destroyed = false;
-    let handle: EmbedHandle | undefined;
+    let disposed = false;
 
     async function boot() {
-      if (!containerRef.current) {
+      if (handleRef.current || !containerRef.current) {
         return;
       }
       try {
         const embedModule = await loadEmbedModule(embedMode, embedSrc);
-        if (destroyed || !containerRef.current) {
+        if (disposed || !containerRef.current) {
           return;
         }
-        handle = bootstrapEmbed(containerRef.current, embedModule);
-        setStatus('Embed ready');
+        const initialPlan = initialPlanRef.current ?? plan;
+        const handle = bootstrapEmbed(containerRef.current, embedModule, initialPlan);
+        handleRef.current = handle;
+        currentHashRef.current = initialPlan.meta?.planHash ?? null;
+        initialPlanRef.current = initialPlan;
+        setEmbedStatus('ready');
+        setEmbedError(null);
       } catch (error) {
         console.error(error);
-        setStatus(error instanceof Error ? error.message : 'Failed to load embed');
+        if (!disposed) {
+          setEmbedStatus('error');
+          setEmbedError(error instanceof Error ? error.message : 'Failed to load embed');
+        }
       }
     }
 
+    if (!handleRef.current) {
+      setEmbedStatus('initializing');
+      setEmbedError(null);
+    }
     boot();
 
     return () => {
-      destroyed = true;
-      handle?.destroy();
+      disposed = true;
+      handleRef.current?.destroy();
+      handleRef.current = null;
+      currentHashRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [embedMode, embedSrc]);
+
+  useEffect(() => {
+    const handle = handleRef.current;
+    if (!handle) {
+      return;
+    }
+    if (!planHash || planHash === currentHashRef.current) {
+      if (planHash === currentHashRef.current) {
+        initialPlanRef.current = plan;
+      }
+      return;
+    }
+    handle.hydrateNext({ plan });
+    currentHashRef.current = planHash;
+    initialPlanRef.current = plan;
+  }, [plan, planHash]);
+
+  const statusMessage = useMemo(() => {
+    if (embedStatus === 'error') {
+      return embedError ?? 'Failed to load embed';
+    }
+    if (planStatus === 'loading') {
+      return 'Loading default blocks…';
+    }
+    if (planStatus === 'fallback') {
+      const detail = planError ? ` — ${planError}` : '';
+      return `Unable to load default plan${detail}. Showing sample data.`;
+    }
+    if (planStatus === 'disabled') {
+      return 'Sample plan mode enabled (API fetch disabled).';
+    }
+    if (embedStatus === 'ready') {
+      return planSource === 'api' ? 'Embed ready (default plan loaded).' : 'Embed ready (sample data).';
+    }
+    return 'Loading embed…';
+  }, [embedStatus, embedError, planStatus, planSource, planError]);
 
   return (
     <main>
@@ -322,9 +215,11 @@ export default function Page() {
         data-config-url={configUrl}
         data-api-base={apiBase}
         data-plan-mode={planMode}
+        data-plan-status={planStatus}
+        data-plan-source={planSource}
       />
       <p className="status" role="status" aria-live="polite">
-        {status}
+        {statusMessage}
       </p>
       <dl className="status">
         <dt>Embed mode</dt>
@@ -349,6 +244,10 @@ export default function Page() {
         ) : null}
         <dt>Plan mode</dt>
         <dd>{planMode}</dd>
+        <dt>Plan status</dt>
+        <dd>{planStatus}</dd>
+        <dt>Plan hash</dt>
+        <dd>{planHash}</dd>
       </dl>
     </main>
   );
