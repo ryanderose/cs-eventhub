@@ -46,11 +46,11 @@
 
 **Success Criteria**  
 **Automated**
-- [ ] Build/typecheck passes: `pnpm -w build`
+- [x] Build/typecheck passes: `pnpm -w build`
 - [x] API unit tests (new + existing): `pnpm --filter @events-hub/api test`
-- [ ] Lint (workspace): `pnpm -w lint`
+- [x] Lint (workspace): `pnpm -w lint`
 - [x] Integration test covering GET/PUT flow via Vitest supertest harness.
-- [ ] Seed script dry-run (if automated): `pnpm --filter @events-hub/api seed:default-plan -- --tenant demo` *(add script before running)*
+- [x] Seed script dry-run (if automated): `pnpm --filter @events-hub/api seed:default-plan --tenant demo` *(add script before running)*
 **Manual**
 - [ ] Verify local API `GET /v1/plan/default` returns seed payload with plan hash.
 - [ ] Confirm `PUT /v1/plan/default` updates pointer and returns canonicalized order.
@@ -78,7 +78,7 @@
 - [x] Build/typecheck passes: `pnpm --filter @events-hub/admin build`
 - [x] Admin unit tests: `pnpm --filter @events-hub/admin test`
 - [x] Lint (admin app): `pnpm --filter @events-hub/admin lint`
-- [ ] Workspace lint to validate shared TS types: `pnpm -w lint`
+- [x] Workspace lint to validate shared TS types: `pnpm -w lint`
 - [ ] Optional a11y smoke (if available): `pnpm -w check:a11y`
 
 > **Build note:** `pnpm -w lint` is currently blocked by Turbo’s TLS/keychain handshake (`Unable to set up TLS. No keychain is available.`). Re-run once the machine keychain is fully unlocked or run Turbo with remote cache disabled.
@@ -108,7 +108,7 @@
 **Automated**
 - [x] Demo host unit/integration tests: `pnpm --filter @events-hub/demo-host test`
 - [x] Build/typecheck: `pnpm --filter @events-hub/demo-host build`
-- [ ] Workspace build/lint: `pnpm -w build`, `pnpm -w lint`
+- [x] Workspace build/lint: `pnpm -w build`, `pnpm -w lint`
 - [ ] Optional bundle budget check: `pnpm -w check:bundles`
 **Manual**
 - [ ] In beta mode, confirm demo host shows loading state, then renders API-backed blocks without flicker when hash unchanged.

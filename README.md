@@ -13,6 +13,14 @@ pnpm dev:stack
 
 `pnpm dev:stack` starts the demo host, Vercel API emulator (with config routes), embed watcher, and local CDN server in parallel.
 
+### Turbo Remote Caching Credentials
+
+Turbo commands in this repo run through `./scripts/turbo-run.sh`, which expects a `TURBO_TOKEN` to be available because macOS keychain access is not guaranteed in all environments.
+
+1. Copy `.env.turbo.example` to `.env.turbo` (or `.env.turbo.local`) and fill in the real `TURBO_TOKEN` value.
+2. Alternatively export `TURBO_TOKEN` / `TURBO_TEAM` in your shell, or set `TURBO_TOKEN_COMMAND` to a 1Password/secret-store command that prints the token.
+3. To run without remote caching, invoke commands with `TURBO_ALLOW_MISSING_TOKEN=1 pnpm -w <task>`, though remote cache benefits will be skipped.
+
 ## Repository Highlights
 
 - **Turborepo + pnpm** workspace for all apps and packages.
