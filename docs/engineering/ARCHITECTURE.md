@@ -80,7 +80,9 @@ without the Shadow DOM constraints.
 
 - **Analytics:** All hydration/visibility events flow through the telemetry package and
   must conform to the expanded `SdkEvent` schema. Fake timers or stub dispatchers are not
-  accepted for GA readiness.
+  accepted for GA readiness. Admin default plan APIs and UI emit
+  `analytics.admin.default_plan.fetch|save` events and cache instrumentation under the
+  `cache.pages_store.*` family so observability spans cover reorder flows end-to-end.
 - **Tracing:** OpenTelemetry spans wrap API calls, provider requests, interpreter/composer
   invocations, and client SDK hydration phases. Shared trace IDs allow CI and Metabase to
   correlate perceived latency with infrastructure metrics.
@@ -114,4 +116,3 @@ exposes health and readiness probes for Kubernetes/Vercel monitors, and tenant-f
 dashboards are powered by ClickHouse + Metabase with 13‑month retention. Configuration,
 plan persistence, and analytics pipelines all share the `planHash` value to correlate user
 sessions with cached responses and observability metrics.
-

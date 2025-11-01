@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react';
 import { DndContext, PointerSensor, KeyboardSensor, DragEndEvent, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -12,6 +12,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
 import type { PageDoc, BlockInstance } from '@events-hub/page-schema';
+import { ADMIN_DEFAULT_PLAN_SPANS, recordAdminDefaultPlan } from '@events-hub/telemetry';
 
 type DefaultPlanResponse = {
   plan: PageDoc;
@@ -39,6 +40,9 @@ type BlockRowProps = {
   onMove: (id: string, targetIndex: number) => void;
   total: number;
 };
+
+const ADMIN_BLOCKS_ROUTE = '/blocks';
+const ADMIN_BLOCKS_SESSION = 'admin.blocks';
 
 function BlockRow({ block, index, onMove, total }: BlockRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
@@ -106,6 +110,8 @@ function BlockRow({ block, index, onMove, total }: BlockRowProps) {
 }
 
 export function BlockList({ initialPlan, apiBase, planHash: initialHash, tenantId }: BlockListProps) {
+  const sessionId = ADMIN_BLOCKS_SESSION;
+  const route = ADMIN_BLOCKS_ROUTE;
   const [referencePlan, setReferencePlan] = useState<PageDoc>(initialPlan);
   const [blocks, setBlocks] = useState<BlockInstance[]>(() => [...initialPlan.blocks]);
   const [planHash, setPlanHash] = useState(initialHash);
@@ -118,6 +124,18 @@ export function BlockList({ initialPlan, apiBase, planHash: initialHash, tenantI
     setBlocks(initialPlan.blocks);
     setPlanHash(initialHash);
     setUpdatedAt(initialPlan.updatedAt);
+    recordAdminDefaultPlan({
+      type: ADMIN_DEFAULT_PLAN_SPANS.fetch,
+      status: 'success',
+      envelope: {
+        tenantId,
+        planHash: initialHash,
+        route,
+        sessionId,
+        ts: Date.now()
+      },
+      source: 'admin-ui'
+    });
   }, [initialPlan, initialHash]);
 
   const sensors = useSensors(
@@ -168,10 +186,24 @@ export function BlockList({ initialPlan, apiBase, planHash: initialHash, tenantI
   const refetchPlan = useCallback(async (): Promise<DefaultPlanResponse | null> => {
     const response = await fetch(`${apiBase}/v1/plan/default?tenantId=${tenantId}`, { cache: 'no-store' });
     if (!response.ok) {
+      recordAdminDefaultPlan({
+        type: ADMIN_DEFAULT_PLAN_SPANS.fetch,
+        status: 'error',
+        envelope: { tenantId, route, sessionId, ts: Date.now() },
+        source: 'admin-ui',
+        message: `Refetch failed (${response.status})`
+      });
       return null;
     }
-    return (await response.json()) as DefaultPlanResponse;
-  }, [apiBase, tenantId]);
+    const next = (await response.json()) as DefaultPlanResponse;
+    recordAdminDefaultPlan({
+      type: ADMIN_DEFAULT_PLAN_SPANS.fetch,
+      status: 'success',
+      envelope: { tenantId, planHash: next.planHash, route, sessionId, ts: Date.now() },
+      source: 'admin-ui'
+    });
+    return next;
+  }, [apiBase, route, sessionId, tenantId]);
 
   const handleSave = useCallback(async () => {
     if (!isDirty || saveState.status === 'saving') {
@@ -179,8 +211,6 @@ export function BlockList({ initialPlan, apiBase, planHash: initialHash, tenantI
     }
 
     setSaveState({ status: 'saving' });
-    console.debug('admin-default-plan', { action: 'save', status: 'pending', planHash });
-
     const payload = {
       plan: {
         ...referencePlan,
@@ -202,7 +232,15 @@ export function BlockList({ initialPlan, apiBase, planHash: initialHash, tenantI
       });
 
       if (response.status === 412) {
-        console.debug('admin-default-plan', { action: 'save', status: 'conflict', planHash });
+        const conflictPayload = (await response.json()) as { planHash?: string };
+        const conflictHash = conflictPayload.planHash ?? planHash;
+        recordAdminDefaultPlan({
+          type: ADMIN_DEFAULT_PLAN_SPANS.save,
+          status: 'conflict',
+          envelope: { tenantId, planHash: conflictHash, route, sessionId, ts: Date.now() },
+          message: 'Plan hash mismatch',
+          source: 'admin-ui'
+        });
         const latest = await refetchPlan();
         if (latest) {
           setReferencePlan(latest.plan);
@@ -220,7 +258,13 @@ export function BlockList({ initialPlan, apiBase, planHash: initialHash, tenantI
       if (!response.ok) {
         const message = `Save failed (${response.status})`;
         setSaveState({ status: 'error', message });
-        console.debug('admin-default-plan', { action: 'save', status: 'error', planHash, message });
+        recordAdminDefaultPlan({
+          type: ADMIN_DEFAULT_PLAN_SPANS.save,
+          status: 'error',
+          envelope: { tenantId, planHash, route, sessionId, ts: Date.now() },
+          message,
+          source: 'admin-ui'
+        });
         return;
       }
 
@@ -229,14 +273,25 @@ export function BlockList({ initialPlan, apiBase, planHash: initialHash, tenantI
       setBlocks(result.plan.blocks);
       setPlanHash(result.planHash);
       setUpdatedAt(result.updatedAt);
-      console.debug('admin-default-plan', { action: 'save', status: 'success', planHash: result.planHash });
+      recordAdminDefaultPlan({
+        type: ADMIN_DEFAULT_PLAN_SPANS.save,
+        status: 'success',
+        envelope: { tenantId, planHash: result.planHash, route, sessionId, ts: Date.now() },
+        source: 'admin-ui'
+      });
       setSaveState({ status: 'success', message: 'Plan updated' });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unexpected error';
       setSaveState({ status: 'error', message });
-      console.debug('admin-default-plan', { action: 'save', status: 'error', planHash, message });
+      recordAdminDefaultPlan({
+        type: ADMIN_DEFAULT_PLAN_SPANS.save,
+        status: 'error',
+        envelope: { tenantId, planHash, route, sessionId, ts: Date.now() },
+        message,
+        source: 'admin-ui'
+      });
     }
-  }, [apiBase, blocks, isDirty, planHash, referencePlan, refetchPlan, saveState.status, tenantId]);
+  }, [apiBase, blocks, isDirty, planHash, referencePlan, refetchPlan, route, saveState.status, sessionId, tenantId]);
 
   const triggerSave = useCallback(() => {
     startTransition(() => {

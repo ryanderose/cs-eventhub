@@ -13,6 +13,7 @@ Enable the admin console to reorder the canonical default block list and have th
 - [x] (2025-10-31 21:45Z) Milestone 2 — Delivered admin drag-and-drop UI with optimistic saves, conflict handling, and Vitest coverage (`apps/admin/app/blocks/page.tsx`, `apps/admin/components/default-blocks/block-list.tsx`, `apps/admin/__tests__/blocks.test.tsx`).
 - [x] (2025-10-31 23:30Z) Milestone 3 — Updated demo host to fetch default plan with retries, hash-aware hydration, fallback, and tests (`apps/demo-host/app/page.tsx`, `apps/demo-host/__tests__/page.test.tsx`).
 - [x] (2025-11-01 03:59Z) Milestone 4 — Update shared packages (`ai-composer`, `ai-interpreter`, `page-schema`, `blocks`, `telemetry`) plus docs, seeds, and Storybook preview.
+- [x] (2025-11-01 06:45Z) Milestone 6 — Added admin default plan telemetry spans/logging, cache instrumentation, and updated documentation/tests.
 
 ## Surprises & Discoveries
 
@@ -31,6 +32,7 @@ Enable the admin console to reorder the canonical default block list and have th
   Evidence: `pnpm vitest run packages/ai-composer/src/index.test.ts` returning two passing tests after config update.
 - `tsx` CLI attempted to open a system pipe and failed under sandboxed permissions; switched the seed script to invoke `node --import tsx` which avoids the EPERM socket path and works with Node 22’s loader deprecation.
   Evidence: `pnpm --filter @events-hub/api seed:default-plan -- --tenant demo` logging the seeded plan hash.
+- Vitest could not resolve `@events-hub/telemetry` after the new imports until we added workspace path aliases (`tooling/config/tsconfig.base.json`, `tooling/config/vitest.config.ts`). This also avoids relying on pnpm reinstall prompts in the sandboxed environment.
 
 ## Decision Log
 
@@ -84,8 +86,8 @@ The repository hosts three apps (`apps/admin`, `apps/api`, `apps/demo-host`) and
 - **Milestone 5 — Blocks registry and Storybook preview** — ✅ Completed 2025-11-01 (bundle check awaits Turbo fix).  
   Register placeholder renderers for `block one`, `block who`, and `block three` in `packages/blocks/src/index.ts` so Storybook/Ladle previews match admin labels. Add a default-story in `packages/blocks/stories/default-plan.stories.tsx` (or Ladle equivalent) showing the three-block list. Create a root `storybook` script (`pnpm -w storybook`) pointing to `pnpm dlx ladle serve --config tooling/config/ladle.config.mjs` so contributors have a workspace command for previews. Update bundle guards if the new components add assets; ensure `pnpm -w check:bundles` remains green. Add snapshot/unit tests verifying renderer registration.
 
-- **Milestone 6 — Telemetry & analytics wiring** — ⏳ Pending.  
-  Extend `packages/telemetry` with span constants and helper methods for admin default plan events, ensuring envelopes include `planHash` and `tenantId` (docs/product/spec-v1.6.md:509-512). Implement API logging at `info`/`warn`/`error` levels per spec (docs/specs/2025-10-31-admin-default-blocks-spec.md:70-83). Ensure new spans use approved prefixes `analytics.*` or `cache.*` (ai/constraints.md:9-10). Update instrumentation docs if necessary.
+- **Milestone 6 — Telemetry & analytics wiring** — ✅ Completed 2025-11-01.  
+  Extended `packages/telemetry` with span constants/helpers for admin default plan events (tenant-aware envelopes, dynamic log levels), instrumented `/v1/plan/default` with `analytics.admin.default_plan.*` spans/logs, added `cache.pages_store.*` emissions in the pointer store, wired admin UI saves to telemetry, refreshed Vitest suites, and documented the new signals in `docs/engineering/ARCHITECTURE.md` (docs/product/spec-v1.6.md:509-512, docs/specs/2025-10-31-admin-default-blocks-spec.md:70-83).
 
 - **Milestone 7 — Seeds, configuration, and QA tooling**:  
   Implement `pnpm --filter @events-hub/api seed:default-plan -- --tenant <tenantId>` to pre-populate KV pointers, per spec (docs/specs/2025-10-31-admin-default-blocks-spec.md:128-129). Update `.env.example` files in apps/admin and apps/demo-host with any new flags (e.g., `NEXT_PUBLIC_PLAN_MODE=beta`). Document feature flag handoff and how to roll out `beta` → `prod`. Ensure `docs/engineering/ARCHITECTURE.md` references the new default plan flow.
@@ -218,6 +220,9 @@ Acceptance criteria are met when all automated checks pass, manual QA confirms a
   ```
 - Record Vitest output (tests added in apps/api, apps/admin, apps/demo-host, packages/ai-composer, packages/ai-interpreter, packages/telemetry) once they exist.
 - Include bundle report snippets if `pnpm -w check:bundles` adjusts budgets due to new client code.
+- `pnpm vitest run packages/telemetry/src/index.test.ts` → ensured new envelope/log helpers behave as expected.
+- `pnpm vitest run apps/api/__tests__/plan-default.test.ts` → validated telemetry span/log wiring around GET/PUT flows.
+- `pnpm vitest run apps/admin/__tests__/blocks.test.tsx` → exercised telemetry hooks from the admin UI save/conflict paths without user-event dependency.
 
 ## Interfaces and Dependencies
 

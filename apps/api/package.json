@@ -14,6 +14,7 @@
     "@events-hub/ai-composer": "workspace:*",
     "@events-hub/ai-interpreter": "workspace:*",
     "@events-hub/page-schema": "workspace:*",
+    "@events-hub/telemetry": "workspace:*",
     "@events-hub/router-helpers": "workspace:*",
     "@events-hub/security": "workspace:*",
     "@opentelemetry/api": "1.7.0",
