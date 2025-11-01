@@ -1,11 +1,18 @@
+import React from 'react';
+import '@testing-library/jest-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import type { PageDoc, BlockInstance } from '@events-hub/page-schema';
 import { BlockList } from '../components/default-blocks/block-list';
 
 const tenantId = 'demo';
 const apiBase = 'http://localhost:3001';
+
+async function click(element: HTMLElement) {
+  await act(async () => {
+    element.click();
+  });
+}
 
 function buildBlock(id: string, order: number, overrides: Partial<BlockInstance> = {}): BlockInstance {
   return {
@@ -62,7 +69,6 @@ describe('<BlockList />', () => {
   });
 
   it('enables save after reordering and posts updates', async () => {
-    const user = userEvent.setup();
     const plan = buildPlan();
     const fetchMock = vi.mocked(global.fetch);
     fetchMock.mockResolvedValue({
@@ -81,13 +87,13 @@ describe('<BlockList />', () => {
 
     render(<BlockList initialPlan={plan} planHash="hash-123" tenantId={tenantId} apiBase={apiBase} />);
 
-    const moveDownButtons = screen.getAllByRole('button', { name: /Move down/ });
-    await user.click(moveDownButtons[0]);
+    const moveDownButtons = screen.getAllByRole('button', { name: /^Move down$/ });
+    expect(moveDownButtons[0]).not.toBeDisabled();
+    await click(moveDownButtons[0]);
 
     const saveButton = screen.getByRole('button', { name: 'Save' });
-    expect(saveButton).not.toBeDisabled();
-
-    await user.click(saveButton);
+    await waitFor(() => expect(saveButton).not.toBeDisabled());
+    await click(saveButton);
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const request = fetchMock.mock.calls[0];
@@ -99,7 +105,6 @@ describe('<BlockList />', () => {
   });
 
   it('handles 412 conflicts by refetching latest plan', async () => {
-    const user = userEvent.setup();
     const plan = buildPlan();
     const fetchMock = vi.mocked(global.fetch);
     const refreshedPlan = {
@@ -132,13 +137,17 @@ describe('<BlockList />', () => {
 
     render(<BlockList initialPlan={plan} planHash="hash-123" tenantId={tenantId} apiBase={apiBase} />);
 
-    const moveDownButtons = screen.getAllByRole('button', { name: /Move down/ });
-    await user.click(moveDownButtons[0]);
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    const moveDownButtons = screen.getAllByRole('button', { name: /^Move down$/ });
+    expect(moveDownButtons[0]).not.toBeDisabled();
+    await click(moveDownButtons[0]);
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    await waitFor(() => expect(saveButton).not.toBeDisabled());
+    await click(saveButton);
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(screen.getByRole('alert')).toHaveTextContent(/stale/i);
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Move down/ })).toBeEnabled();
+    const moveDownAfter = screen.getAllByRole('button', { name: /^Move down$/ });
+    expect(moveDownAfter[0]).toBeEnabled();
   });
 });
