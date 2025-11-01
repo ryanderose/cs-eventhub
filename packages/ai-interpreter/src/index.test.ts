@@ -14,4 +14,12 @@ describe('Filter DSL interpreter', () => {
     const result = interpret('How much are tickets?');
     expect(result.intent).toBe('qa');
   });
+
+  it('deduplicates categories while preserving insertion order', () => {
+    const result = interpret('category:music category:arts category:music category:family');
+    expect(result.filters.categories).toEqual(['music', 'arts', 'family']);
+
+    const reordered = interpret('category:arts category:music category:arts');
+    expect(reordered.filters.categories).toEqual(['arts', 'music']);
+  });
 });

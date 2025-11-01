@@ -21,6 +21,76 @@ export type ComposeResult = {
 
 const DEFAULT_COMPOSER_VERSION = 'composer/1.5.0';
 
+type StaticBlockConfig = {
+  key: string;
+  title: string;
+  offsetHours: number;
+};
+
+const STATIC_DEFAULT_BLOCKS: StaticBlockConfig[] = [
+  { key: 'block-one', title: 'block one', offsetHours: 2 },
+  { key: 'block-who', title: 'block who', offsetHours: 6 },
+  { key: 'block-three', title: 'block three', offsetHours: 10 }
+];
+
+function buildStaticPlaceholderEvent(tenantId: string, blockKey: string, offsetHours: number, locale: string, baseTimestamp: number) {
+  const startDate = new Date(baseTimestamp + offsetHours * 60 * 60 * 1000).toISOString();
+
+  return {
+    id: `${tenantId}-${blockKey}-event`,
+    canonicalId: `${tenantId}-${blockKey}-event`,
+    name: blockKey.replace(/-/g, ' '),
+    venue: { id: `${tenantId}-${blockKey}-venue`, name: `Venue for ${blockKey.replace(/-/g, ' ')}` },
+    startDate,
+    categories: ['curated'],
+    locale,
+    timezone: 'UTC',
+    source: { provider: 'static', id: `${tenantId}-${blockKey}` },
+    whyGo: ['Default block placeholder']
+  };
+}
+
+export function buildDefaultStaticPlan(tenantId: string, locale: string = 'en-US'): PageDoc {
+  const now = Date.now();
+  const updatedAt = new Date(now).toISOString();
+  const basePlan = PageDocSchema.parse({
+    id: `default-plan-${tenantId}`,
+    title: 'Default Blocks',
+    description: 'Static default plan for admin bootstrap',
+    path: '/',
+    tenantId,
+    updatedAt,
+    version: '1.5',
+    blocks: STATIC_DEFAULT_BLOCKS.map(({ key, title, offsetHours }, idx) => ({
+      id: key,
+      key,
+      kind: 'collection-rail',
+      version: '1.5',
+      order: idx,
+      layout: { fullWidth: true },
+      data: {
+        title,
+        layout: 'rail',
+        streaming: { mode: 'initial' as const },
+        diversity: { venue: 2, date: 3, category: 60 },
+        events: [buildStaticPlaceholderEvent(tenantId, key, offsetHours, locale, now)]
+      }
+    })),
+    meta: {
+      locale,
+      cacheTags: [tenantId],
+      flags: { defaultPlan: true },
+      generatedAt: updatedAt,
+      composerVersion: DEFAULT_COMPOSER_VERSION
+    },
+    planCursors: []
+  });
+
+  const canonical = canonicalizePageDoc(basePlan);
+  const hashed = withPlanHash({ ...canonical, meta: { ...canonical.meta, composerVersion: DEFAULT_COMPOSER_VERSION } });
+  return hashed;
+}
+
 const telemetry = {
   record(event: string, attributes?: Record<string, unknown>) {
     if (process.env.NODE_ENV === 'test') return;
