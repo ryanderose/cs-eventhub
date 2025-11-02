@@ -21,3 +21,6 @@ playwright-report/
 
 # Turborepo
 .turbo
+
+# local env (Turbo)
+.env.turbo
