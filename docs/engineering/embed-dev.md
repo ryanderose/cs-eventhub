@@ -7,9 +7,13 @@ This guide explains how to run the full embed stack locally and how to switch be
 `pnpm dev:stack` starts the services on these hostnames:
 
 - **Next demo host** – `localhost:3000`
-- **Vercel API emulator** – `localhost:3000` via `vercel dev`
+- **Local API adapter** – `localhost:4000` via `pnpm --filter @events-hub/api dev`
 - **Embed SDK watcher** – rebuilds `packages/embed-sdk/dist`
 - **Static CDN server** – `localhost:5173` with `Cache-Control: no-store`
+
+The API adapter reuses the Vercel handlers through `apps/api/adapters/local`, exposes
+`/health` for readiness probes, and defaults to `TELEMETRY_MODE=dev` so local requests log
+to the console without hitting production sinks.
 
 ## Linked vs external embed modes
 
@@ -34,8 +38,14 @@ Update `apps/api/.env.local` or the corresponding Vercel env vars to point to be
 The admin `/blocks` route and demo host now hydrate from the default plan API. To seed the fallback plan locally:
 
 - Run `pnpm --filter @events-hub/api seed:default-plan -- --tenant demo` to persist the static three-block plan and pointer. When KV credentials are not configured the seed falls back to in-memory storage.
-- Fetch `curl http://localhost:3001/v1/plan/default?tenantId=demo | jq '.plan.blocks[].key'` to confirm the API returns `block-one`, `block-who`, and `block-three` with the persisted `planHash`.
+- Fetch `curl http://localhost:4000/v1/plan/default?tenantId=demo | jq '.plan.blocks[].key'` to confirm the API returns `block-one`, `block-who`, and `block-three` with the persisted `planHash`.
 - Saving new block order in the admin UI updates the pointer; the demo host only re-renders when the returned `planHash` changes, avoiding flicker between saves.
+
+## Telemetry modes
+
+Set `TELEMETRY_MODE=dev|noop|prod` in each app’s `.env.local` file. Use `dev` for local
+logs, `noop` when you want completely silent runs (tests, CI dry-runs), and reserve `prod`
+for deployed environments that forward analytics downstream.
 
 ## Publishing embeds to the CDN app
 

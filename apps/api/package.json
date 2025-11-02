@@ -3,11 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "vercel dev --cwd .",
-    "build": "echo 'api build handled by Vercel deploy'",
-    "start": "vercel dev --cwd .",
+    "dev": "tsx watch adapters/local/server.ts",
+    "build": "tsc --project tsconfig.json",
+    "start": "node dist/adapters/local/server.js",
     "vercel:build": "vercel build --cwd .",
     "test": "vitest run --config ../../vitest.config.ts --dir . --passWithNoTests",
+    "test:contract:local": "vitest run --config vitest.contract.ts --dir . --passWithNoTests",
+    "test:contract:preview": "vitest run --config vitest.contract.ts --dir . --passWithNoTests",
     "seed:default-plan": "node --import tsx ./scripts/seed-default-plan.ts"
   },
   "dependencies": {
@@ -18,10 +20,12 @@
     "@events-hub/router-helpers": "workspace:*",
     "@events-hub/security": "workspace:*",
     "@opentelemetry/api": "1.7.0",
-    "@vercel/kv": "1.0.1"
+    "@vercel/kv": "1.0.1",
+    "express": "4.19.2"
   },
   "devDependencies": {
     "@vercel/node": "3.2.9",
+    "@types/express": "4.17.21",
     "vercel": "33.7.1"
   }
 }

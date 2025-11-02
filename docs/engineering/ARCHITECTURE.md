@@ -58,6 +58,9 @@ runs non-interactively in CI.
 - **API app (`apps/api`)** acts as the BFF. It handles config delivery, AI interpreter and
   composer requests, plan short-ID resolution, analytics intake, and provider fan-out. It
   is designed for Vercel Edge/Node runtimes and adds tracing metadata for every call.
+  Local development now runs the shared handlers through the Express adapter in
+  `apps/api/adapters/local`, which exposes `/health` on port `4000` so Playwright/contract
+  suites can block on readiness without invoking `vercel dev`.
 - **CitySpark provider adapter (`packages/data-providers`)** enforces quotas, normalizes
   timestamps (UTC + IANA tz), computes `canonicalId`, and yields facet counts used by the
   filter bar and diversity logic.
@@ -83,6 +86,8 @@ without the Shadow DOM constraints.
   accepted for GA readiness. Admin default plan APIs and UI emit
   `analytics.admin.default_plan.fetch|save` events and cache instrumentation under the
   `cache.pages_store.*` family so observability spans cover reorder flows end-to-end.
+  `TELEMETRY_MODE=dev|noop|prod` gates emission so local runs stay noise-free while CI and
+  production flows opt into their respective sinks.
 - **Tracing:** OpenTelemetry spans wrap API calls, provider requests, interpreter/composer
   invocations, and client SDK hydration phases. Shared trace IDs allow CI and Metabase to
   correlate perceived latency with infrastructure metrics.

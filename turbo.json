@@ -14,7 +14,16 @@
     },
     "dev": {
       "cache": false,
-      "dependsOn": []
+      "dependsOn": [],
+      "persistent": true,
+      "env": [
+        "PORT",
+        "HOST",
+        "TELEMETRY_MODE",
+        "PREVIEW_URL",
+        "NEXT_PUBLIC_API_BASE",
+        "NEXT_PUBLIC_API_URL"
+      ]
     },
     "check:a11y": {
       "dependsOn": ["build"],

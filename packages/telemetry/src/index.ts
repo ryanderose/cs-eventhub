@@ -28,6 +28,8 @@ export type TelemetryEvent = {
   payload: SdkEvent;
 };
 
+export type TelemetryMode = 'prod' | 'dev' | 'noop';
+
 export function formatTelemetryEvent(envelope: AnalyticsEnvelope, payload: SdkEvent): TelemetryEvent {
   return { envelope, payload };
 }
@@ -46,11 +48,11 @@ export const CACHE_PAGES_STORE_EVENTS = {
 
 export type TelemetryLogLevel = 'info' | 'warn' | 'error' | 'debug';
 
-function shouldEmitDebug() {
+function shouldEmitDebug(): boolean {
   return Boolean(process.env.DEBUG?.includes('telemetry'));
 }
 
-function pickLogger(level: TelemetryLogLevel): ((message?: unknown, ...optionalParams: unknown[]) => void) {
+function pickLogger(level: TelemetryLogLevel): (message?: unknown, ...optionalParams: unknown[]) => void {
   switch (level) {
     case 'warn':
       return console.warn.bind(console);
@@ -64,11 +66,52 @@ function pickLogger(level: TelemetryLogLevel): ((message?: unknown, ...optionalP
   }
 }
 
+function normalizeTelemetryMode(mode: string | undefined): TelemetryMode | null {
+  if (!mode) return null;
+  const normalized = mode.toLowerCase();
+  if (normalized === 'prod' || normalized === 'dev' || normalized === 'noop') {
+    return normalized;
+  }
+  return null;
+}
+
+export function resolveTelemetryMode(): TelemetryMode {
+  const explicit = normalizeTelemetryMode(process.env.TELEMETRY_MODE);
+  if (explicit) {
+    return explicit;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    return 'prod';
+  }
+  if (process.env.NODE_ENV === 'test') {
+    return 'noop';
+  }
+  return 'dev';
+}
+
+function shouldLogForMode(mode: TelemetryMode, level: TelemetryLogLevel): boolean {
+  if (mode === 'noop') {
+    return level === 'error' && process.env.NODE_ENV !== 'test';
+  }
+  if (level === 'debug') {
+    return shouldEmitDebug();
+  }
+  return true;
+}
+
+function telemetryPrefix(mode: TelemetryMode): string {
+  if (mode === 'prod') return '[telemetry]';
+  if (mode === 'dev') return '[telemetry:dev]';
+  return '[telemetry:noop]';
+}
+
 export function emitTelemetry(name: string, details: Record<string, unknown>, level: TelemetryLogLevel = 'info'): void {
-  if (process.env.NODE_ENV === 'test') return;
-  if (level === 'debug' && !shouldEmitDebug()) return;
+  const mode = resolveTelemetryMode();
+  if (!shouldLogForMode(mode, level)) {
+    return;
+  }
   const logger = pickLogger(level);
-  logger(`[telemetry] ${name}`, details);
+  logger(`${telemetryPrefix(mode)} ${name}`, { ...details, telemetryMode: mode });
 }
 
 type AdminDefaultPlanEnvelope = Pick<AnalyticsEnvelope, 'tenantId' | 'planHash'> &
