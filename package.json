@@ -33,6 +33,7 @@
     "eslint-config-next": "14.2.3",
     "eslint_d": "^14.3.0",
     "jsdom": "22.1.0",
+    "msw": "2.2.13",
     "prettier": "3.2.5",
     "tsx": "4.7.1",
     "turbo": "1.13.3",

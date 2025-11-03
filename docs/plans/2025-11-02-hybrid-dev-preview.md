@@ -56,9 +56,9 @@
 - [x] API unit/contract placeholder: `pnpm --filter @events-hub/api test`
 - [x] Static analysis for configs: `pnpm -w test` (verifies shared packages still compile)
 **Manual**
-- [ ] `pnpm dev:stack` starts demo-host (3000), admin (3001), API (4000) without prompts.
-- [ ] Hitting `http://localhost:4000/health` returns `OK`.
-- [ ] Changing telemetry mode to `noop` suppresses external network calls locally.
+- [x] `pnpm dev:stack` starts demo-host (3000), admin (3001), API (4000) without prompts.
+- [x] Hitting `http://localhost:4000/health` returns `OK`.
+- [x] Changing telemetry mode to `noop` suppresses external network calls locally.
 
 ---
 
@@ -80,14 +80,14 @@
 
 **Success Criteria**  
 **Automated**
-- [ ] Local E2E suite: `pnpm playwright test --project=demo-hosts-local --project=admin-local`
-- [ ] API contract (local): `pnpm --filter @events-hub/api test:contract:local`
-- [ ] Parity canary (local vs preview placeholder) runs locally with `PREVIEW_URL=http://localhost:3000`: `PREVIEW_URL=http://localhost:3000 pnpm playwright test --project=demo-hosts-preview --grep @parity`
-- [ ] Workspace regression suite still passes: `pnpm -w test`
+- [x] Local E2E suite: `pnpm playwright test --project=demo-hosts-local --project=admin-local`
+- [x] API contract (local): `pnpm --filter @events-hub/api test:contract:local`
+- [x] Parity canary (local vs preview placeholder) runs locally with `PREVIEW_URL=http://localhost:3000`: `PREVIEW_URL=http://localhost:3000 pnpm playwright test --project=demo-hosts-preview --grep @parity`
+- [x] Workspace regression suite still passes: `pnpm -w test`
 **Manual**
-- [ ] Preview-tagged specs are skipped without `PREVIEW_URL` and execute when it is provided.
-- [ ] MSW mocks can be toggled off to hit real API when desired.
-- [ ] Parity failure surfaces mismatched headers in report output.
+- [x] Preview-tagged specs are skipped without `PREVIEW_URL` and execute when it is provided.
+- [x] MSW mocks can be toggled off to hit real API when desired.
+- [x] Parity failure surfaces mismatched headers in report output.
 
 ---
 

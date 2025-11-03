@@ -19,6 +19,15 @@ The hybrid workflow provides two lanes for iterating on `cs-eventhub`. Phase 1
 - `TELEMETRY_MODE` defaults to `noop` locally to prevent external writes; switch to `dev` when validating payloads manually.
 - API fallbacks: if KV credentials are absent, the service seeds plans via the local seed store.
 
+## Test Matrix & Tagging
+- Local lane E2E: `pnpm playwright test --project=demo-hosts-local --project=admin-local --project=api-local`
+- Contract smoke (local): `pnpm --filter @events-hub/api test:contract:local`
+- Preview smoke: `PREVIEW_URL=<vercel-url> pnpm playwright test --project=demo-hosts-preview --project=admin-preview --project=api-preview --grep @preview`
+- Parity canary: `PREVIEW_URL=<vercel-url> pnpm playwright test --project=demo-hosts-preview --grep @parity`
+- Override `PREVIEW_DEMO_URL`, `PREVIEW_ADMIN_URL`, or `PREVIEW_API_URL` when preview hosts differ; during local dry runs point them at `http://localhost:3000`, `http://localhost:3001`, and `http://localhost:4000` respectively to reuse running dev servers.
+- Preview-only specs include the `@preview` tag so local runs automatically skip them; use `@parity` to target the parity diff.
+- Local specs boot MSW via `playwright/fixtures/msw.ts`; disable mocks with `PLAYWRIGHT_MSW=off` to hit the real services.
+
 ### Rollback (Emergency)
 - `pnpm --filter @events-hub/api dev:vercel` restores the previous `vercel dev` workflow for parity debugging.
 - Switch `pnpm dev:stack` back to the archived command if the Express adapter needs to be bypassed.
