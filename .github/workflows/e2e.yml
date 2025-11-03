@@ -1,0 +1,66 @@
+name: e2e
+
+on:
+  push:
+    branches:
+      - main
+      - trunk
+  pull_request:
+
+jobs:
+  local:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: npx playwright install --with-deps
+      - run: pnpm -w build
+      - run: pnpm test:e2e:local
+      - run: pnpm --filter @events-hub/api test:contract:local
+      - run: pnpm --filter @events-hub/api test --runInBand --type telemetry
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-local
+          path: playwright-report
+
+  preview-smoke:
+    needs: local
+    if: >
+      github.event_name == 'pull_request' &&
+      (contains(github.event.pull_request.title, '[preview]') ||
+      contains(github.event.pull_request.body || '', 'preview:'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: npx playwright install --with-deps
+      - name: Fetch Vercel preview URL
+        id: vercel
+        uses: patrickedqvist/vercel-preview-url@v1
+        with:
+          token: ${{ secrets.VERCEL_TOKEN }}
+          teamId: ${{ secrets.VERCEL_TEAM_ID }}
+          projectId: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Run preview smoke
+        env:
+          PREVIEW_URL: ${{ steps.vercel.outputs.preview_url }}
+        run: |
+          pnpm --filter @events-hub/api test:contract:preview
+          pnpm test:e2e:preview
+          pnpm test:parity
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-preview
+          path: playwright-report

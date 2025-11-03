@@ -8,7 +8,7 @@
     "start": "NODE_ENV=production tsx adapters/local/server.ts",
     "dev:vercel": "vercel dev --cwd .",
     "vercel:build": "vercel build --cwd .",
-    "test": "vitest run --config ../../vitest.config.ts --passWithNoTests",
+    "test": "node ../../scripts/run-vitest.mjs",
     "test:contract:local": "vitest run --config vitest.contract.ts --reporter=dot",
     "test:contract:preview": "PREVIEW_URL=$PREVIEW_URL vitest run --config vitest.contract.ts --reporter=dot",
     "seed:default-plan": "tsx scripts/seed-default-plan.ts"
@@ -19,6 +19,7 @@
     "@events-hub/page-schema": "workspace:*",
     "@events-hub/router-helpers": "workspace:*",
     "@events-hub/security": "workspace:*",
+    "@events-hub/telemetry": "workspace:*",
     "@opentelemetry/api": "1.7.0",
     "@vercel/kv": "1.0.1",
     "express": "4.19.2"

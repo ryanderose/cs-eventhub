@@ -16,6 +16,9 @@
     "check:bundles": "./scripts/turbo-run.sh run check:bundles",
     "security:sbom": "./scripts/turbo-run.sh run security:sbom",
     "security:provenance": "./scripts/turbo-run.sh run security:provenance",
+    "test:e2e:local": "pnpm playwright test --project=demo-hosts-local --project=admin-local --project=api-local",
+    "test:e2e:preview": "pnpm playwright test --project=demo-hosts-preview --project=admin-preview --project=api-preview --grep @preview",
+    "test:parity": "pnpm playwright test --project=demo-hosts-preview --grep @parity",
     "ci": "pnpm -w build && pnpm -w test && pnpm -w lint && pnpm -w check:bundles"
   },
   "devDependencies": {

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "sdk",
+    "size": 1,
+    "limit": 45,
+    "ok": true
+  },
+  {
+    "name": "esm",
+    "size": 1,
+    "limit": 35,
+    "ok": true
+  },
+  {
+    "name": "block",
+    "size": 1,
+    "limit": 15,
+    "ok": true
+  },
+  {
+    "name": "tokens",
+    "size": 1,
+    "limit": 12,
+    "ok": true
+  }
+]

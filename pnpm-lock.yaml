@@ -123,6 +123,9 @@ importers:
       '@events-hub/security':
         specifier: workspace:*
         version: link:../../packages/security
+      '@events-hub/telemetry':
+        specifier: workspace:*
+        version: link:../../packages/telemetry
       '@opentelemetry/api':
         specifier: 1.7.0
         version: 1.7.0
