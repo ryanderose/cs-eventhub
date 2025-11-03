@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { handleTenantConfig } from '../../../src/http/config-tenants';
+import { createApp } from '../../src/app';
+
+const app = createApp();
 
 export default function handler(req: VercelRequest, res: VercelResponse): void {
-  handleTenantConfig(req, res);
+  (app as any)(req, res);
 }

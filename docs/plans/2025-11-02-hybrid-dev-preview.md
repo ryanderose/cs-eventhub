@@ -51,10 +51,10 @@
 
 **Success Criteria**  
 **Automated**
-- [ ] Build/typecheck passes: `pnpm -w build`
-- [ ] Repo lint baseline: `pnpm -w lint`
-- [ ] API unit/contract placeholder: `pnpm --filter @events-hub/api test`
-- [ ] Static analysis for configs: `pnpm -w test` (verifies shared packages still compile)
+- [x] Build/typecheck passes: `pnpm -w build`
+- [x] Repo lint baseline: `pnpm -w lint`
+- [x] API unit/contract placeholder: `pnpm --filter @events-hub/api test`
+- [x] Static analysis for configs: `pnpm -w test` (verifies shared packages still compile)
 **Manual**
 - [ ] `pnpm dev:stack` starts demo-host (3000), admin (3001), API (4000) without prompts.
 - [ ] Hitting `http://localhost:4000/health` returns `OK`.

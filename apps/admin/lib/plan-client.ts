@@ -1,6 +1,6 @@
 import { PageDoc } from '@events-hub/page-schema';
 
-const DEFAULT_API_BASE = 'http://localhost:3001';
+const DEFAULT_API_BASE = 'http://localhost:4000';
 
 export type DefaultPlanResponse = {
   plan: PageDoc;
@@ -22,8 +22,17 @@ export class ApiError extends Error {
 }
 
 function getApiBase(): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE?.trim();
-  return base && base.length > 0 ? base : DEFAULT_API_BASE;
+  const candidates = [
+    process.env.NEXT_PUBLIC_API_URL,
+    process.env.NEXT_PUBLIC_API_BASE
+  ];
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return DEFAULT_API_BASE;
 }
 
 function buildUrl(path: string, searchParams?: Record<string, string | undefined>): string {
