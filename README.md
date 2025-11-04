@@ -15,16 +15,19 @@ pnpm dev:stack
 
 ### Sandboxed Playwright runs
 
-Coding agents (Codex CLI, Claude Code, etc.) should favor the system Chrome that already exists in the sandbox to avoid macOS Crashpad prompts and huge browser downloads:
+Playwright now defaults to the bundled Chromium for sandboxed executions. Run `pnpm test:e2e:local:chromium` to launch the Playwright-managed browser with the correct cache location (`PLAYWRIGHT_BROWSERS_PATH=0`) and channel preconfigured. No additional environment variables are required, and the temporary folders that Playwright creates stay ignored by Git.
+
+If the sandbox forbids Playwright from downloading browsers (for example, Codex CLI on macOS), opt into the system Chrome by running `pnpm test:e2e:local:chrome`. The script wires up `PLAYWRIGHT_USE_SYSTEM_CHROME=1` and expects a Chrome channel to already exist on the machine. When Chrome lives in a non-standard path, use the platform-specific variants (`test:e2e:local:chrome:path:*`) that pass `PW_CHROME_PATH` along with the required sandbox-safe directories:
 
 ```bash
 rm -rf .pw-home .pw-user .chrome-crashes
 mkdir -p ".pw-home/Library/Application Support/Google/Chrome/Crashpad" .pw-user .chrome-crashes
 PLAYWRIGHT_USE_SYSTEM_CHROME=1 PW_HOME="$PWD/.pw-home" \
+  PW_USER_DATA_DIR="$PWD/.pw-user" PW_CRASH_DIR="$PWD/.chrome-crashes" \
   CFFIXED_USER_HOME="$PWD/.pw-home" pnpm playwright test --project=demo-hosts-local --project=admin-local
 ```
 
-Temporary folders such as `.playwright-browsers/`, `.pw-home/`, `.pw-user/`, and `.chrome-crashes/` are ignored by Git so these runs stay clean. Use `PLAYWRIGHT_USE_SYSTEM_CHROME=1` (and optional `PW_CHROME_PATH`) in CI or sandboxes that forbid downloading Playwright’s bundled browsers.
+Crashpad cannot launch from writable overlays inside the hosted macOS sandboxes, so Chrome will emit non-fatal warnings about the crash handler. Pointing `PW_CRASH_DIR` to a local folder prevents the modal prompts but crash reports remain disabled. Temporary folders such as `.playwright-browsers/`, `.pw-home/`, `.pw-user/`, and `.chrome-crashes/` are ignored by Git so these runs stay clean.
 
 ## Repository Highlights
 
