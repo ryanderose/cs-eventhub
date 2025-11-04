@@ -46,6 +46,7 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_ALLOW_MISSING_TOKEN: 1
       VERCEL_PROTECTION_BYPASS: ${{ secrets.VERCEL_PROTECTION_BYPASS }}
+      VERCEL_PROTECTION_BYPASS_SIGNATURE: ${{ secrets.VERCEL_PROTECTION_BYPASS_SIGNATURE }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

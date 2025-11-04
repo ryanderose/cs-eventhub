@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 const BASE = process.env.PREVIEW_API_URL ?? process.env.PREVIEW_URL ?? 'http://localhost:4000';
-const PREVIEW_BYPASS_HEADER = process.env.VERCEL_PROTECTION_BYPASS
-  ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS }
-  : undefined;
+const PREVIEW_BYPASS_HEADER = (() => {
+  const headers: Record<string, string> = {};
+  if (process.env.VERCEL_PROTECTION_BYPASS) {
+    headers['x-vercel-protection-bypass'] = process.env.VERCEL_PROTECTION_BYPASS;
+  }
+  if (process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE) {
+    headers['x-vercel-protection-bypass-signature'] = process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE;
+  }
+  return Object.keys(headers).length ? headers : undefined;
+})();
 
 function url(path: string): string {
   return new URL(path, BASE).toString();

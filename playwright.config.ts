@@ -7,9 +7,14 @@ if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
 const CI = process.env.CI === 'true';
 const NEXT_DEV_ENV = 'CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true NEXT_USE_POLLING=true';
 const NEXT_DEV_HOST = 'HOST=0.0.0.0';
-const previewHeaders = process.env.VERCEL_PROTECTION_BYPASS
-  ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS }
-  : undefined;
+const vercelBypassHeaders: Record<string, string> = {};
+if (process.env.VERCEL_PROTECTION_BYPASS) {
+  vercelBypassHeaders['x-vercel-protection-bypass'] = process.env.VERCEL_PROTECTION_BYPASS;
+}
+if (process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE) {
+  vercelBypassHeaders['x-vercel-protection-bypass-signature'] = process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE;
+}
+const previewHeaders = Object.keys(vercelBypassHeaders).length ? vercelBypassHeaders : undefined;
 
 export default defineConfig({
   testDir: 'playwright',
