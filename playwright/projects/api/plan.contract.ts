@@ -29,12 +29,25 @@ function withPreviewHeaders(headers?: Record<string, string>): HeadersInit | und
   };
 }
 
+async function assertStatus(response: Response, expected: number) {
+  if (response.status === expected) {
+    return;
+  }
+  let body = '';
+  try {
+    body = await response.text();
+  } catch {
+    body = '<unreadable body>';
+  }
+  throw new Error(`Expected status ${expected}, received ${response.status}. Body: ${body}`);
+}
+
 describe('plan contract', () => {
   it('returns a plan document for GET /api/v1/plan/default', async () => {
     const response = await fetch(url('/api/v1/plan/default'), {
       headers: withPreviewHeaders()
     });
-    expect(response.status).toBe(200);
+    await assertStatus(response, 200);
 
     const body = await response.json();
     expect(body).toHaveProperty('plan');
@@ -49,6 +62,6 @@ describe('plan contract', () => {
       headers: withPreviewHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ plan: { blocks: [] } })
     });
-    expect(response.status).toBe(400);
+    await assertStatus(response, 400);
   });
 });
