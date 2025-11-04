@@ -80,15 +80,15 @@ jobs:
             exit 1
           fi
 
-          cd apps/demo-host
-          mkdir -p .vercel
-          cat <<JSON > .vercel/project.json
+          APP_DIR="apps/demo-host"
+          mkdir -p "$APP_DIR/.vercel"
+          cat <<JSON > "$APP_DIR/.vercel/project.json"
           {"orgId":"${VERCEL_ORG_ID}","projectId":"${VERCEL_PROJECT_ID}"}
           JSON
 
-          pnpm dlx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
-          pnpm dlx vercel build --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
-          response=$(pnpm dlx vercel deploy --prebuilt --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --target preview --yes --archive=tgz --json)
+          pnpm dlx vercel pull --cwd "$APP_DIR" --yes --environment=preview --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          pnpm dlx vercel build --cwd "$APP_DIR" --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          response=$(pnpm dlx vercel deploy --cwd "$APP_DIR" --prebuilt --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --target preview --yes --archive=tgz --json)
           url=$(echo "$response" | jq -r '.url')
           if [ -z "$url" ] || [ "$url" = "null" ]; then
             echo "Failed to parse demo host deployment URL." >&2
@@ -108,15 +108,15 @@ jobs:
             exit 1
           fi
 
-          cd apps/api
-          mkdir -p .vercel
-          cat <<JSON > .vercel/project.json
+          APP_DIR="apps/api"
+          mkdir -p "$APP_DIR/.vercel"
+          cat <<JSON > "$APP_DIR/.vercel/project.json"
           {"orgId":"${VERCEL_ORG_ID}","projectId":"${VERCEL_PROJECT_ID}"}
           JSON
 
-          pnpm dlx vercel pull --yes --environment=preview --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
-          pnpm dlx vercel build --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
-          response=$(pnpm dlx vercel deploy --prebuilt --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --target preview --yes --archive=tgz --json)
+          pnpm dlx vercel pull --cwd "$APP_DIR" --yes --environment=preview --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          pnpm dlx vercel build --cwd "$APP_DIR" --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          response=$(pnpm dlx vercel deploy --cwd "$APP_DIR" --prebuilt --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --target preview --yes --archive=tgz --json)
           url=$(echo "$response" | jq -r '.url')
           if [ -z "$url" ] || [ "$url" = "null" ]; then
             echo "Failed to parse API deployment URL." >&2
