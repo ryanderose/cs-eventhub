@@ -87,6 +87,24 @@ jobs:
           JSON
 
           pnpm dlx vercel pull --cwd "$APP_DIR" --yes --environment=preview --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          if command -v jq >/dev/null 2>&1; then
+            tmp="$(mktemp)"
+            jq '.settings = (.settings // {}) | .settings.rootDirectory="."' "$APP_DIR/.vercel/project.json" > "$tmp"
+            mv "$tmp" "$APP_DIR/.vercel/project.json"
+          else
+            export PROJECT_FILE="$APP_DIR/.vercel/project.json"
+            python3 - <<'PY'
+import json, os, sys
+file = os.environ["PROJECT_FILE"]
+with open(file, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+settings = data.get("settings") or {}
+settings["rootDirectory"] = "."
+data["settings"] = settings
+with open(file, "w", encoding="utf-8") as fh:
+    json.dump(data, fh)
+PY
+          fi
           pnpm dlx vercel build --cwd "$APP_DIR" --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
           response=$(pnpm dlx vercel deploy --cwd "$APP_DIR" --prebuilt --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --target preview --yes --archive=tgz --json)
           url=$(echo "$response" | jq -r '.url')
@@ -115,6 +133,24 @@ jobs:
           JSON
 
           pnpm dlx vercel pull --cwd "$APP_DIR" --yes --environment=preview --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
+          if command -v jq >/dev/null 2>&1; then
+            tmp="$(mktemp)"
+            jq '.settings = (.settings // {}) | .settings.rootDirectory="."' "$APP_DIR/.vercel/project.json" > "$tmp"
+            mv "$tmp" "$APP_DIR/.vercel/project.json"
+          else
+            export PROJECT_FILE="$APP_DIR/.vercel/project.json"
+            python3 - <<'PY'
+import json, os, sys
+file = os.environ["PROJECT_FILE"]
+with open(file, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+settings = data.get("settings") or {}
+settings["rootDirectory"] = "."
+data["settings"] = settings
+with open(file, "w", encoding="utf-8") as fh:
+    json.dump(data, fh)
+PY
+          fi
           pnpm dlx vercel build --cwd "$APP_DIR" --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID"
           response=$(pnpm dlx vercel deploy --cwd "$APP_DIR" --prebuilt --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --target preview --yes --archive=tgz --json)
           url=$(echo "$response" | jq -r '.url')
