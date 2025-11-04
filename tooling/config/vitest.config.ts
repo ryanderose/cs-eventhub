@@ -8,6 +8,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@events-hub/embed-sdk/dist/index.esm.js',
+        replacement: `${rootDir}/packages/embed-sdk/src/index.ts`
+      },
+      {
         find: /^@events-hub\/(.+)$/,
         replacement: `${rootDir}/packages/$1/src`
       }

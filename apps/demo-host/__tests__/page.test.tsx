@@ -2,6 +2,7 @@ import React from 'react';
 import { JSDOM } from 'jsdom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import Page from '../app/page';
 import type { EmbedConfig, EmbedHandle } from '@events-hub/embed-sdk';
 import type { PageDoc } from '@events-hub/page-schema';
@@ -180,6 +181,6 @@ describe('Next.js embed host page', () => {
     const initialPlan = createMock.mock.calls[0][0].initialPlan as PageDoc;
     expect(initialPlan.meta?.planHash).toBe('stub');
     expect(screen.getByRole('alert')).toHaveTextContent(/Unable to load default plan/i);
-    expect(screen.getByText(/fallback/i)).toBeInTheDocument();
+    expect(screen.getByText(/Embed ready \(fallback\)/i)).toBeInTheDocument();
   });
 });
