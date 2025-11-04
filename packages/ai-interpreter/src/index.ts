@@ -39,6 +39,8 @@ export type InterpreterResult = {
   tokens: Token[];
 };
 
+const WHITESPACE_RE = /\s/;
+
 const PRESET_ALIASES: Record<string, FilterDSL['dateRange']> = {
   today: { preset: 'today' },
   tonight: { preset: 'today' },
@@ -82,10 +84,41 @@ function normalizeQuery(query: string): string {
     .trim();
 }
 
+// Splits on whitespace but keeps quoted segments intact to avoid regex backtracking.
+function splitQueryParts(input: string): string[] {
+  const parts: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (const char of input) {
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      current += char;
+      continue;
+    }
+
+    if (!inQuotes && WHITESPACE_RE.test(char)) {
+      if (current) {
+        parts.push(current);
+        current = '';
+      }
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current) {
+    parts.push(current);
+  }
+
+  return parts;
+}
+
 function extractTokens(query: string): Token[] {
   const normalized = normalizeQuery(query);
   const tokens: Token[] = [];
-  const parts = normalized.split(/\s+(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+  const parts = splitQueryParts(normalized);
   for (const part of parts) {
     if (!part) continue;
     const match = part.match(/^(?<field>[a-zA-Z0-9_-]+)(?<op>:|>=|<=|=|~)(?<value>.+)$/);
