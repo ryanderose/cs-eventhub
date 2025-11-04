@@ -12,9 +12,9 @@
   "dependencies": {
     "@events-hub/block-registry": "workspace:*",
     "@events-hub/ui": "workspace:*",
-    "react": "18.2.0"
+    "react": "18.3.1"
   },
   "peerDependencies": {
-    "react": "^18.2.0"
+    "react": "^18.3.1"
   }
 }

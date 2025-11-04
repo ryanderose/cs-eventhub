@@ -16,7 +16,11 @@
     "check:bundles": "./scripts/turbo-run.sh run check:bundles",
     "security:sbom": "./scripts/turbo-run.sh run security:sbom",
     "security:provenance": "./scripts/turbo-run.sh run security:provenance",
-    "test:e2e:local": "pnpm playwright test --project=demo-hosts-local --project=admin-local --project=api-local",
+    "e2e:serve": "concurrently --kill-others --names demo,admin,api --prefix-colors magenta,blue,cyan \"pnpm run e2e:serve:demo\" \"pnpm run e2e:serve:admin\" \"pnpm run e2e:serve:api\"",
+    "e2e:serve:demo": "CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true NEXT_USE_POLLING=true PORT=3000 HOST=0.0.0.0 pnpm --filter @events-hub/demo-host dev",
+    "e2e:serve:admin": "CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true NEXT_USE_POLLING=true PORT=3001 HOST=0.0.0.0 pnpm --filter @events-hub/admin dev",
+    "e2e:serve:api": "PORT=4000 HOST=0.0.0.0 pnpm --filter @events-hub/api dev",
+    "test:e2e:local": "node ./scripts/run-e2e.mjs local",
     "test:e2e:preview": "pnpm playwright test --project=demo-hosts-preview --project=admin-preview --project=api-preview --grep @preview",
     "test:parity": "pnpm playwright test --project=demo-hosts-preview --grep @parity",
     "ci": "pnpm -w build && pnpm -w test && pnpm -w lint && pnpm -w check:bundles"

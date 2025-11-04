@@ -85,13 +85,13 @@ importers:
     dependencies:
       next:
         specifier: 14.2.3
-        version: 14.2.3(@babel/core@7.28.5)(@playwright/test@1.45.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.3(@babel/core@7.28.5)(@playwright/test@1.45.1)(react-dom@18.3.1)(react@18.3.1)
       react:
-        specifier: 18.2.0
-        version: 18.2.0
+        specifier: 18.3.1
+        version: 18.3.1
       react-dom:
-        specifier: 18.2.0
-        version: 18.2.0(react@18.2.0)
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
     devDependencies:
       '@types/node':
         specifier: 20.11.30
@@ -162,13 +162,13 @@ importers:
         version: link:../../packages/page-schema
       next:
         specifier: 14.2.3
-        version: 14.2.3(@babel/core@7.28.5)(@playwright/test@1.45.1)(react-dom@18.2.0)(react@18.2.0)
+        version: 14.2.3(@babel/core@7.28.5)(@playwright/test@1.45.1)(react-dom@18.3.1)(react@18.3.1)
       react:
-        specifier: 18.2.0
-        version: 18.2.0
+        specifier: 18.3.1
+        version: 18.3.1
       react-dom:
-        specifier: 18.2.0
-        version: 18.2.0(react@18.2.0)
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
 
   packages/ai-composer:
     dependencies:
@@ -215,8 +215,8 @@ importers:
         specifier: workspace:*
         version: link:../ui
       react:
-        specifier: 18.2.0
-        version: 18.2.0
+        specifier: 18.3.1
+        version: 18.3.1
 
   packages/cli:
     dependencies:
@@ -285,15 +285,15 @@ importers:
         specifier: workspace:*
         version: link:../tokens
       react:
-        specifier: 18.2.0
-        version: 18.2.0
+        specifier: 18.3.1
+        version: 18.3.1
     devDependencies:
       '@testing-library/jest-dom':
         specifier: 6.4.1
         version: 6.4.1(vitest@1.5.2)
       '@testing-library/react':
         specifier: 14.2.1
-        version: 14.2.1(react-dom@18.3.1)(react@18.2.0)
+        version: 14.2.1(react-dom@18.3.1)(react@18.3.1)
 
   tooling: {}
 
@@ -2180,20 +2180,6 @@ packages:
       lodash: 4.17.21
       redent: 3.0.0
       vitest: 1.5.2(@types/node@20.11.30)(jsdom@22.1.0)
-    dev: true
-
-  /@testing-library/react@14.2.1(react-dom@18.3.1)(react@18.2.0):
-    resolution: {integrity: sha512-sGdjws32ai5TLerhvzThYFbpnF9XtL65Cjf+gB0Dhr29BGqK+mAeN7SURSdu+eqgET4ANcWoC7FQpkaiGvBr+A==}
-    engines: {node: '>=14'}
-    peerDependencies:
-      react: ^18.0.0
-      react-dom: ^18.0.0
-    dependencies:
-      '@babel/runtime': 7.28.4
-      '@testing-library/dom': 9.3.4
-      '@types/react-dom': 18.2.18
-      react: 18.2.0
-      react-dom: 18.3.1(react@18.2.0)
     dev: true
 
   /@testing-library/react@14.2.1(react-dom@18.3.1)(react@18.3.1):
@@ -7901,7 +7887,7 @@ packages:
     resolution: {integrity: sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==}
     engines: {node: '>= 0.6'}
 
-  /next@14.2.3(@babel/core@7.28.5)(@playwright/test@1.45.1)(react-dom@18.2.0)(react@18.2.0):
+  /next@14.2.3(@babel/core@7.28.5)(@playwright/test@1.45.1)(react-dom@18.3.1)(react@18.3.1):
     resolution: {integrity: sha512-dowFkFTR8v79NPJO4QsBUtxv0g9BrS/phluVpMAt2ku7H+cbcBJlopXjkWlwxrk/xGqMemr7JkGPGemPrLLX7A==}
     engines: {node: '>=18.17.0'}
     hasBin: true
@@ -7926,9 +7912,9 @@ packages:
       caniuse-lite: 1.0.30001751
       graceful-fs: 4.2.11
       postcss: 8.4.31
-      react: 18.2.0
-      react-dom: 18.2.0(react@18.2.0)
-      styled-jsx: 5.1.1(@babel/core@7.28.5)(react@18.2.0)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      styled-jsx: 5.1.1(@babel/core@7.28.5)(react@18.3.1)
     optionalDependencies:
       '@next/swc-darwin-arm64': 14.2.3
       '@next/swc-darwin-x64': 14.2.3
@@ -8638,26 +8624,6 @@ packages:
       destr: 2.0.5
     dev: true
 
-  /react-dom@18.2.0(react@18.2.0):
-    resolution: {integrity: sha512-6IMTriUmvsjHUjNtEDudZfuDQUoWXVxKHhlEGSk81n4YFS+r/Kl99wXiwlVXtPBtJenozv2P+hxDsw9eA7Xo6g==}
-    peerDependencies:
-      react: ^18.2.0
-    dependencies:
-      loose-envify: 1.4.0
-      react: 18.2.0
-      scheduler: 0.23.2
-    dev: false
-
-  /react-dom@18.3.1(react@18.2.0):
-    resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
-    peerDependencies:
-      react: ^18.3.1
-    dependencies:
-      loose-envify: 1.4.0
-      react: 18.2.0
-      scheduler: 0.23.2
-    dev: true
-
   /react-dom@18.3.1(react@18.3.1):
     resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
     peerDependencies:
@@ -8666,7 +8632,6 @@ packages:
       loose-envify: 1.4.0
       react: 18.3.1
       scheduler: 0.23.2
-    dev: true
 
   /react-hotkeys-hook@4.6.2(react-dom@18.3.1)(react@18.3.1):
     resolution: {integrity: sha512-FmP+ZriY3EG59Ug/lxNfrObCnW9xQShgk7Nb83+CkpfkcCpfS95ydv+E9JuXA5cp8KtskU7LGlIARpkc92X22Q==}
@@ -8703,18 +8668,11 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
-  /react@18.2.0:
-    resolution: {integrity: sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      loose-envify: 1.4.0
-
   /react@18.3.1:
     resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
     engines: {node: '>=0.10.0'}
     dependencies:
       loose-envify: 1.4.0
-    dev: true
 
   /readable-stream@3.6.2:
     resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
@@ -9460,7 +9418,7 @@ packages:
       inline-style-parser: 0.1.1
     dev: true
 
-  /styled-jsx@5.1.1(@babel/core@7.28.5)(react@18.2.0):
+  /styled-jsx@5.1.1(@babel/core@7.28.5)(react@18.3.1):
     resolution: {integrity: sha512-pW7uC1l4mBZ8ugbiZrcIsiIvVx1UmTfw7UkC3Um2tmfUq9Bhk8IiyEIPl6F8agHgjzku6j0xQEZbfA5uSgSaCw==}
     engines: {node: '>= 12.0.0'}
     peerDependencies:
@@ -9475,7 +9433,7 @@ packages:
     dependencies:
       '@babel/core': 7.28.5
       client-only: 0.0.1
-      react: 18.2.0
+      react: 18.3.1
     dev: false
 
   /sucrase@3.35.0:

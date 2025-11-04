@@ -9,7 +9,7 @@
     "dev:vercel": "vercel dev --cwd .",
     "vercel:build": "vercel build --cwd .",
     "test": "node ../../scripts/run-vitest.mjs",
-    "test:contract:local": "vitest run --config vitest.contract.ts --reporter=dot",
+    "test:contract:local": "node ../../scripts/run-e2e.mjs api-contract",
     "test:contract:preview": "PREVIEW_URL=$PREVIEW_URL vitest run --config vitest.contract.ts --reporter=dot",
     "seed:default-plan": "tsx scripts/seed-default-plan.ts"
   },

@@ -5,6 +5,8 @@ if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
 }
 
 const CI = process.env.CI === 'true';
+const NEXT_DEV_ENV = 'CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true NEXT_USE_POLLING=true';
+const NEXT_DEV_HOST = 'HOST=0.0.0.0';
 
 export default defineConfig({
   testDir: 'playwright',
@@ -31,7 +33,7 @@ export default defineConfig({
         baseURL: 'http://localhost:3000'
       },
       webServer: {
-        command: 'PORT=3000 HOST=0.0.0.0 pnpm --filter @events-hub/demo-host dev',
+        command: `${NEXT_DEV_ENV} PORT=3000 ${NEXT_DEV_HOST} pnpm --filter @events-hub/demo-host dev`,
         url: 'http://localhost:3000',
         reuseExistingServer: true,
         timeout: 120_000
@@ -46,7 +48,7 @@ export default defineConfig({
         baseURL: 'http://localhost:3001'
       },
       webServer: {
-        command: 'PORT=3001 HOST=0.0.0.0 pnpm --filter @events-hub/admin dev',
+        command: `${NEXT_DEV_ENV} PORT=3001 ${NEXT_DEV_HOST} pnpm --filter @events-hub/admin dev`,
         url: 'http://localhost:3001',
         reuseExistingServer: true,
         timeout: 120_000
@@ -60,7 +62,7 @@ export default defineConfig({
         baseURL: 'http://localhost:4000'
       },
       webServer: {
-        command: 'PORT=4000 HOST=0.0.0.0 pnpm --filter @events-hub/api dev',
+        command: `PORT=4000 ${NEXT_DEV_HOST} pnpm --filter @events-hub/api dev`,
         url: 'http://localhost:4000/health',
         reuseExistingServer: true,
         timeout: 120_000
