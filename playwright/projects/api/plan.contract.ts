@@ -1,14 +1,29 @@
 import { describe, expect, it } from 'vitest';
 
 const BASE = process.env.PREVIEW_URL ?? 'http://localhost:4000';
+const PREVIEW_BYPASS_HEADER = process.env.VERCEL_PROTECTION_BYPASS
+  ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS }
+  : undefined;
 
 function url(path: string): string {
   return new URL(path, BASE).toString();
 }
 
+function withPreviewHeaders(headers?: Record<string, string>): HeadersInit | undefined {
+  if (!PREVIEW_BYPASS_HEADER) {
+    return headers;
+  }
+  return {
+    ...PREVIEW_BYPASS_HEADER,
+    ...(headers ?? {})
+  };
+}
+
 describe('plan contract', () => {
   it('returns a plan document for GET /api/v1/plan/default', async () => {
-    const response = await fetch(url('/api/v1/plan/default'));
+    const response = await fetch(url('/api/v1/plan/default'), {
+      headers: withPreviewHeaders()
+    });
     expect(response.status).toBe(200);
 
     const body = await response.json();
@@ -21,7 +36,7 @@ describe('plan contract', () => {
   it('rejects invalid updates for PUT /api/v1/plan/default', async () => {
     const response = await fetch(url('/api/v1/plan/default'), {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: withPreviewHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ plan: { blocks: [] } })
     });
     expect(response.status).toBe(400);

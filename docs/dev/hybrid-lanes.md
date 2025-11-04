@@ -20,6 +20,7 @@ The hybrid workflow provides two lanes for iterating on `cs-eventhub`. Phase 1
 - Preview smoke variables:
   - `PREVIEW_URL` shared across projects.
   - `PREVIEW_DEMO_URL`, `PREVIEW_ADMIN_URL`, `PREVIEW_API_URL` for host-specific overrides.
+  - `VERCEL_PROTECTION_BYPASS` headers (mirrors Vercel’s “Protection Bypass” token) so CI can access password-protected preview deployments.
 - API fallbacks: if KV credentials are absent, the service seeds plans via the local seed store.
 
 ## Test Matrix & Tagging
@@ -39,7 +40,7 @@ The hybrid workflow provides two lanes for iterating on `cs-eventhub`. Phase 1
 
 ## Preview Automation
 - `.github/workflows/e2e.yml` runs local smoke tests on every push/PR.
-- Preview smoke job triggers when PR metadata includes `[preview]` or `preview:` and requires Vercel credentials (`VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`).
+- Preview smoke job triggers when PR metadata includes `[preview]` or `preview:` and requires Vercel credentials (`VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`, `VERCEL_PROTECTION_BYPASS`).
 - Preview job executes:
   1. `pnpm --filter @events-hub/api test:contract:preview`
   2. `pnpm test:e2e:preview`

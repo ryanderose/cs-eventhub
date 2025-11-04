@@ -7,6 +7,9 @@ if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
 const CI = process.env.CI === 'true';
 const NEXT_DEV_ENV = 'CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true NEXT_USE_POLLING=true';
 const NEXT_DEV_HOST = 'HOST=0.0.0.0';
+const previewHeaders = process.env.VERCEL_PROTECTION_BYPASS
+  ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS }
+  : undefined;
 
 export default defineConfig({
   testDir: 'playwright',
@@ -74,7 +77,8 @@ export default defineConfig({
       testMatch: ['**/projects/demo/**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: process.env.PREVIEW_DEMO_URL ?? process.env.PREVIEW_URL
+        baseURL: process.env.PREVIEW_DEMO_URL ?? process.env.PREVIEW_URL,
+        extraHTTPHeaders: previewHeaders
       }
     },
     {
@@ -83,7 +87,8 @@ export default defineConfig({
       testMatch: ['**/projects/admin/**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: process.env.PREVIEW_ADMIN_URL ?? process.env.PREVIEW_URL
+        baseURL: process.env.PREVIEW_ADMIN_URL ?? process.env.PREVIEW_URL,
+        extraHTTPHeaders: previewHeaders
       }
     },
     {
@@ -91,7 +96,8 @@ export default defineConfig({
       grep: /@preview/,
       testMatch: ['**/projects/api/**/*.spec.ts'],
       use: {
-        baseURL: process.env.PREVIEW_API_URL ?? process.env.PREVIEW_URL
+        baseURL: process.env.PREVIEW_API_URL ?? process.env.PREVIEW_URL,
+        extraHTTPHeaders: previewHeaders
       }
     }
   ]
