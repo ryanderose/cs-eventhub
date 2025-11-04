@@ -28,3 +28,13 @@ playwright-report/
 
 # local env (Turbo)
 .env.turbo
+# Playwright / browser caches
+.playwright-browsers/
+playwright/.cache/
+.cache/ms-playwright/
+.pw-home/
+.pw-user/
+
+# Misc local artifacts
+.vercel/
+*.log
