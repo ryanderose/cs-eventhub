@@ -7,6 +7,8 @@ on:
 jobs:
   setup:
     runs-on: ubuntu-latest
+    env:
+      TURBO_ALLOW_MISSING_TOKEN: 1
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v2
