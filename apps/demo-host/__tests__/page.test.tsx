@@ -1,4 +1,5 @@
 import React from 'react';
+import '@testing-library/jest-dom';
 import { JSDOM } from 'jsdom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
@@ -180,6 +181,6 @@ describe('Next.js embed host page', () => {
     const initialPlan = createMock.mock.calls[0][0].initialPlan as PageDoc;
     expect(initialPlan.meta?.planHash).toBe('stub');
     expect(screen.getByRole('alert')).toHaveTextContent(/Unable to load default plan/i);
-    expect(screen.getByText(/fallback/i)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/fallback/i);
   });
 });
