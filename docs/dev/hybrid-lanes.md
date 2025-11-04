@@ -40,7 +40,7 @@ The hybrid workflow provides two lanes for iterating on `cs-eventhub`. Phase 1
 
 ## Preview Automation
 - `.github/workflows/e2e.yml` runs local smoke tests on every push/PR.
-- Preview smoke job triggers when PR metadata includes `[preview]` or `preview:` and requires Vercel credentials (`VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`, `VERCEL_PROTECTION_BYPASS`).
+- Preview smoke job triggers when PR metadata includes `[preview]` or `preview:` and requires Vercel credentials (`VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID_DEMO_HOST`, `VERCEL_PROJECT_ID_ADMIN`, `VERCEL_PROJECT_ID_API`, `VERCEL_PROTECTION_BYPASS`).
 - Preview job executes:
   1. `pnpm --filter @events-hub/api test:contract:preview`
   2. `pnpm test:e2e:preview`

@@ -425,18 +425,35 @@ jobs:
       - run: corepack enable && pnpm i --frozen-lockfile
       - run: npx playwright install --with-deps
 
-      # Example: fetch Preview URL via marketplace action (or via Vercel API)
-      - name: Fetch Vercel preview URL
-        uses: patrickedqvist/vercel-preview-url@v1
-        id: vercel
-        with:
-          token: ${{ secrets.VERCEL_TOKEN }}
-          teamId: ${{ secrets.VERCEL_TEAM_ID }}
-          projectId: ${{ secrets.VERCEL_PROJECT_ID }}
+      # Example: fetch Preview URLs for each project via the repo script
+      - name: Fetch demo host preview URL
+        id: demo_preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_DEMO_HOST }}
+        run: node scripts/get-vercel-preview-url.mjs
+      - name: Fetch admin preview URL
+        id: admin_preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+        run: node scripts/get-vercel-preview-url.mjs
+      - name: Fetch API preview URL
+        id: api_preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
+        run: node scripts/get-vercel-preview-url.mjs
 
       - name: Run preview smoke
         env:
-          PREVIEW_URL: ${{ steps.vercel.outputs.preview_url }}
+          PREVIEW_URL: ${{ steps.admin_preview.outputs.preview_url }}
+          PREVIEW_DEMO_URL: ${{ steps.demo_preview.outputs.preview_url }}
+          PREVIEW_ADMIN_URL: ${{ steps.admin_preview.outputs.preview_url }}
+          PREVIEW_API_URL: ${{ steps.api_preview.outputs.preview_url }}
         run: |
           pnpm --filter @events-hub/api test:contract:preview
           pnpm playwright test --project=demo-hosts-preview --project=admin-preview

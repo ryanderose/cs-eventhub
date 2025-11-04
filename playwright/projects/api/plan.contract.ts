@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-const BASE = process.env.PREVIEW_URL ?? 'http://localhost:4000';
+const BASE = process.env.PREVIEW_API_URL ?? process.env.PREVIEW_URL ?? 'http://localhost:4000';
 const PREVIEW_BYPASS_HEADER = process.env.VERCEL_PROTECTION_BYPASS
   ? { 'x-vercel-protection-bypass': process.env.VERCEL_PROTECTION_BYPASS }
   : undefined;
