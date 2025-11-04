@@ -3,11 +3,14 @@ import { describe, expect, it } from 'vitest';
 const BASE = process.env.PREVIEW_API_URL ?? process.env.PREVIEW_URL ?? 'http://localhost:4000';
 const PREVIEW_BYPASS_HEADER = (() => {
   const headers: Record<string, string> = {};
-  if (process.env.VERCEL_PROTECTION_BYPASS) {
-    headers['x-vercel-protection-bypass'] = process.env.VERCEL_PROTECTION_BYPASS;
+  const token = process.env.VERCEL_PROTECTION_BYPASS_API ?? process.env.VERCEL_PROTECTION_BYPASS;
+  const signature = process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE_API ?? process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE;
+
+  if (token) {
+    headers['x-vercel-protection-bypass'] = token;
   }
-  if (process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE) {
-    headers['x-vercel-protection-bypass-signature'] = process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE;
+  if (signature) {
+    headers['x-vercel-protection-bypass-signature'] = signature;
   }
   return Object.keys(headers).length ? headers : undefined;
 })();

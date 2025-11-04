@@ -7,14 +7,27 @@ if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
 const CI = process.env.CI === 'true';
 const NEXT_DEV_ENV = 'CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true NEXT_USE_POLLING=true';
 const NEXT_DEV_HOST = 'HOST=0.0.0.0';
-const vercelBypassHeaders: Record<string, string> = {};
-if (process.env.VERCEL_PROTECTION_BYPASS) {
-  vercelBypassHeaders['x-vercel-protection-bypass'] = process.env.VERCEL_PROTECTION_BYPASS;
+function resolveBypassHeaders(scope?: 'DEMO' | 'ADMIN' | 'API'): Record<string, string> | undefined {
+  const headers: Record<string, string> = {};
+
+  const token = scope ? process.env[`VERCEL_PROTECTION_BYPASS_${scope}`] : undefined;
+  const signature = scope ? process.env[`VERCEL_PROTECTION_BYPASS_SIGNATURE_${scope}`] : undefined;
+
+  const fallbackToken = process.env.VERCEL_PROTECTION_BYPASS;
+  const fallbackSignature = process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE;
+
+  const finalToken = token ?? fallbackToken;
+  const finalSignature = signature ?? fallbackSignature;
+
+  if (finalToken) {
+    headers['x-vercel-protection-bypass'] = finalToken;
+  }
+  if (finalSignature) {
+    headers['x-vercel-protection-bypass-signature'] = finalSignature;
+  }
+
+  return Object.keys(headers).length ? headers : undefined;
 }
-if (process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE) {
-  vercelBypassHeaders['x-vercel-protection-bypass-signature'] = process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE;
-}
-const previewHeaders = Object.keys(vercelBypassHeaders).length ? vercelBypassHeaders : undefined;
 
 export default defineConfig({
   testDir: 'playwright',
@@ -83,7 +96,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: process.env.PREVIEW_DEMO_URL ?? process.env.PREVIEW_URL,
-        extraHTTPHeaders: previewHeaders
+        extraHTTPHeaders: resolveBypassHeaders('DEMO')
       }
     },
     {
@@ -93,7 +106,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: process.env.PREVIEW_ADMIN_URL ?? process.env.PREVIEW_URL,
-        extraHTTPHeaders: previewHeaders
+        extraHTTPHeaders: resolveBypassHeaders('ADMIN')
       }
     },
     {
@@ -102,7 +115,7 @@ export default defineConfig({
       testMatch: ['**/projects/api/**/*.spec.ts'],
       use: {
         baseURL: process.env.PREVIEW_API_URL ?? process.env.PREVIEW_URL,
-        extraHTTPHeaders: previewHeaders
+        extraHTTPHeaders: resolveBypassHeaders('API')
       }
     }
   ]

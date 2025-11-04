@@ -465,6 +465,8 @@ jobs:
           path: playwright-report
 ```
 
+> **Bypass headers:** For protected previews, supply Vercel bypass tokens per project (`VERCEL_PROTECTION_BYPASS_DEMO|ADMIN|API` plus matching `..._SIGNATURE_*`). The workflow falls back to `VERCEL_PROTECTION_BYPASS`/`VERCEL_PROTECTION_BYPASS_SIGNATURE` when the project-specific secret is absent.
+
 ---
 
 ## 12) Telemetry & Observability
