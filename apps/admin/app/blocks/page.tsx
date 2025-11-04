@@ -1,11 +1,9 @@
 import { cache } from 'react';
 import type { PageDoc } from '@events-hub/page-schema';
 import { BlockList } from '../../components/default-blocks/block-list';
+import { getApiBase, getDefaultTenant } from '../../lib/env';
 
 export const dynamic = 'force-dynamic';
-
-const DEFAULT_API_BASE = 'http://localhost:3001';
-const DEFAULT_TENANT = 'demo';
 
 type DefaultPlanResponse = {
   plan: PageDoc;
@@ -14,10 +12,11 @@ type DefaultPlanResponse = {
   updatedAt: string;
 };
 
-const getApiBase = cache(() => process.env.NEXT_PUBLIC_API_BASE?.trim() || DEFAULT_API_BASE);
+const resolveApiBase = cache(() => getApiBase());
+const resolveTenantId = cache(() => getDefaultTenant());
 
 async function fetchDefaultPlan(tenantId: string): Promise<DefaultPlanResponse> {
-  const apiBase = getApiBase();
+  const apiBase = resolveApiBase();
   const response = await fetch(`${apiBase}/v1/plan/default?tenantId=${tenantId}`, {
     cache: 'no-store'
   });
@@ -31,8 +30,8 @@ async function fetchDefaultPlan(tenantId: string): Promise<DefaultPlanResponse> 
 }
 
 export default async function BlocksPage() {
-  const tenantId = DEFAULT_TENANT;
-  const apiBase = getApiBase();
+  const tenantId = resolveTenantId();
+  const apiBase = resolveApiBase();
   const payload = await fetchDefaultPlan(tenantId);
 
   return (

@@ -49,14 +49,14 @@
 
 **Success Criteria**  
 **Automated**
-- [ ] Build/typecheck passes: `pnpm -w build`
-- [ ] Unit tests pass (telemetry & API modules): `pnpm -w test`
-- [ ] Lint passes: `pnpm -w lint`
-- [ ] Contract tests hit local adapter: `pnpm --filter @events-hub/api test:contract:local`
+- [x] Build/typecheck passes: `pnpm -w build`
+- [x] Unit tests pass (telemetry & API modules): `pnpm -w test`
+- [x] Lint passes: `pnpm -w lint`
+- [x] Contract tests hit local adapter: `pnpm --filter @events-hub/api test:contract:local`
 **Manual**
-- [ ] `pnpm --filter @events-hub/api dev` starts on port 4000 and `curl http://localhost:4000/health` returns `OK`
-- [ ] Admin and demo apps render locally against the new API endpoint without prompts
-- [ ] Telemetry emits `dev` or `noop` output locally with no external calls
+- [x] `pnpm --filter @events-hub/api dev` starts on port 4000 and `curl http://localhost:4000/health` returns `OK`
+- [x] Admin and demo apps render locally against the new API endpoint without prompts
+- [x] Telemetry emits `dev` or `noop` output locally with no external calls
 
 ---
 

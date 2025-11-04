@@ -241,6 +241,9 @@ export default defineConfig({
 });
 ```
 
+> Implementation note: the repository keeps the canonical config at `tooling/config/playwright.config.ts`
+> (re-exported via `playwright.config.ts`) so agents can inspect the exact project definitions.
+
 **Example local E2E test**
 ```ts
 // playwright/projects/admin/login.spec.ts
@@ -262,6 +265,8 @@ test('Dashboard baseline', async ({ page }) => {
   await expect(page).toHaveScreenshot();
 });
 ```
+
+- Repository paths: local smoke tests live in `playwright/projects/**` with shared handlers under `playwright/mocks/`.
 
 ---
 

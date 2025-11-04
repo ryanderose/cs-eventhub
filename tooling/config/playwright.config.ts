@@ -39,10 +39,12 @@ if (process.env.DEBUG_PLAYWRIGHT_CONFIG) {
   console.log('[playwright-config] resolvedChannel:', resolvedChannel);
 }
 
+// Writable “fake HOME” and browser profile/crash dirs inside the workspace
 const pwHome = process.env.PW_HOME ?? path.resolve(process.cwd(), '.pw-home');
 const userDataDir = process.env.PW_USER_DATA_DIR ?? path.resolve(process.cwd(), '.pw-user');
 const crashDir = process.env.PW_CRASH_DIR ?? path.resolve(process.cwd(), '.chrome-crashes');
 
+// Precreate folders Crashpad/Chrome expect (esp. on macOS)
 fs.mkdirSync(path.join(pwHome, 'Library', 'Application Support', 'Google', 'Chrome', 'Crashpad'), {
   recursive: true
 });
@@ -59,11 +61,15 @@ const baseUse: Parameters<typeof defineConfig>[0]['use'] = {
     args: [
       `--crash-dumps-dir=${crashDir}`,
       '--noerrdialogs',
-      '--disable-dev-shm-usage'
+      '--disable-dev-shm-usage',
+      '--disable-crashpad-for-testing',
+      '--disable-crash-reporter',
+      '--no-zygote'
     ],
     env: {
       ...process.env,
-      HOME: pwHome
+      HOME: pwHome,
+      CFFIXED_USER_HOME: pwHome
     }
   }
 };

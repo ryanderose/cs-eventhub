@@ -8,8 +8,8 @@
     "start": "node dist/adapters/local/server.js",
     "vercel:build": "vercel build --cwd .",
     "test": "vitest run --config ../../vitest.config.ts --dir . --passWithNoTests",
-    "test:contract:local": "vitest run --config vitest.contract.ts --dir . --passWithNoTests",
-    "test:contract:preview": "vitest run --config vitest.contract.ts --dir . --passWithNoTests",
+    "test:contract:local": "vitest run --config vitest.contract.ts --passWithNoTests",
+    "test:contract:preview": "vitest run --config vitest.contract.ts --passWithNoTests",
     "seed:default-plan": "node --import tsx ./scripts/seed-default-plan.ts"
   },
   "dependencies": {

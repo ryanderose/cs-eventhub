@@ -6,6 +6,7 @@ This guide explains how to run the full embed stack locally and how to switch be
 
 `pnpm dev:stack` starts the services on these hostnames:
 
+- **Next admin console** – `localhost:3001`
 - **Next demo host** – `localhost:3000`
 - **Local API adapter** – `localhost:4000` via `pnpm --filter @events-hub/api dev`
 - **Embed SDK watcher** – rebuilds `packages/embed-sdk/dist`
