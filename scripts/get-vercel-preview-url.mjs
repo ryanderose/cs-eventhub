@@ -26,7 +26,8 @@ async function fetchPreviewDeployment() {
 
   const commitSha = process.env.GITHUB_SHA;
 
-  const url = new URL('https://api.vercel.com/v13/deployments');
+  const apiVersion = process.env.VERCEL_DEPLOYMENTS_API_VERSION || 'v6';
+  const url = new URL(`https://api.vercel.com/${apiVersion}/deployments`);
   url.searchParams.set('teamId', teamId);
   url.searchParams.set('projectId', projectId);
   url.searchParams.set('target', 'preview');
