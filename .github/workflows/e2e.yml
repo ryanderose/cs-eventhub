@@ -59,11 +59,11 @@ jobs:
       - run: npx playwright install --with-deps
       - name: Fetch Vercel preview URL
         id: vercel
-        uses: patrickedqvist/vercel-preview-url@v1
-        with:
-          token: ${{ secrets.VERCEL_TOKEN }}
-          teamId: ${{ secrets.VERCEL_TEAM_ID }}
-          projectId: ${{ secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: node scripts/get-vercel-preview-url.mjs
       - name: Run preview smoke
         env:
           PREVIEW_URL: ${{ steps.vercel.outputs.preview_url }}
