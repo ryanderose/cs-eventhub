@@ -28,7 +28,7 @@ jobs:
       - run: pnpm -w build
       - run: pnpm test:e2e:local
       - run: pnpm --filter @events-hub/api test:contract:local
-      - run: pnpm --filter @events-hub/api test --runInBand --type telemetry
+      - run: pnpm --filter @events-hub/api test -- --runInBand --type telemetry
       - uses: actions/upload-artifact@v4
         if: always()
         with:

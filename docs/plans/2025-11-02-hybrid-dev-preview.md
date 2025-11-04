@@ -110,7 +110,7 @@
 **Automated**
 - [x] CI workflow syntax validated: `act -W .github/workflows/e2e.yml` (or `pnpm lint` if action linting available)
 - [ ] Preview smoke command runs locally with mock URL: `PREVIEW_URL=http://localhost:3000 pnpm test:e2e:preview`
-- [x] Telemetry mode unit tests (new): `pnpm --filter @events-hub/api test --runInBand --type telemetry`
+- [x] Telemetry mode unit tests (new): `pnpm --filter @events-hub/api test -- --runInBand --type telemetry`
 - [x] Repository checks remain green: `pnpm -w ci`
 **Manual**
 - [ ] GitHub Actions run shows preview smoke artifacts on label-triggered PR.
