@@ -13,6 +13,19 @@ pnpm dev:stack
 
 `pnpm dev:stack` starts the demo host, Vercel API emulator (with config routes), embed watcher, and local CDN server in parallel.
 
+### Sandboxed Playwright runs
+
+Coding agents (Codex CLI, Claude Code, etc.) should favor the system Chrome that already exists in the sandbox to avoid macOS Crashpad prompts and huge browser downloads:
+
+```bash
+rm -rf .pw-home .pw-user .chrome-crashes
+mkdir -p ".pw-home/Library/Application Support/Google/Chrome/Crashpad" .pw-user .chrome-crashes
+PLAYWRIGHT_USE_SYSTEM_CHROME=1 PW_HOME="$PWD/.pw-home" \
+  CFFIXED_USER_HOME="$PWD/.pw-home" pnpm playwright test --project=demo-hosts-local --project=admin-local
+```
+
+Temporary folders such as `.playwright-browsers/`, `.pw-home/`, `.pw-user/`, and `.chrome-crashes/` are ignored by Git so these runs stay clean. Use `PLAYWRIGHT_USE_SYSTEM_CHROME=1` (and optional `PW_CHROME_PATH`) in CI or sandboxes that forbid downloading Playwright’s bundled browsers.
+
 ## Repository Highlights
 
 - **Turborepo + pnpm** workspace for all apps and packages.
