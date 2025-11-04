@@ -5,21 +5,31 @@ import { defineConfig, devices } from '@playwright/test';
 const isCI = Boolean(process.env.CI);
 const previewUrl = process.env.PREVIEW_URL;
 
-const chromePathCandidates: string[] = [];
 const envChromePath = process.env.PW_CHROME_PATH ?? process.env.PLAYWRIGHT_CHROME_PATH;
-if (envChromePath) {
-  chromePathCandidates.push(envChromePath);
-}
+const requestedChannel = process.env.PW_CHANNEL ?? process.env.PLAYWRIGHT_CHANNEL;
 
-if (process.platform === 'darwin') {
-  chromePathCandidates.push('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
-} else if (process.platform === 'win32') {
-  chromePathCandidates.push('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe');
-  chromePathCandidates.push('C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe');
-} else {
-  chromePathCandidates.push('/usr/bin/google-chrome');
-  chromePathCandidates.push('/usr/bin/google-chrome-stable');
-  chromePathCandidates.push('/snap/bin/chromium');
+// Sandboxed environments should set PLAYWRIGHT_USE_SYSTEM_CHROME=1 so we opt into
+// the host Chrome install instead of the bundled Chromium build that requires sandboxing.
+const useSystemChrome = Boolean(
+  process.env.PLAYWRIGHT_USE_SYSTEM_CHROME ?? envChromePath ?? requestedChannel
+);
+
+const chromePathCandidates: string[] = [];
+if (useSystemChrome) {
+  if (envChromePath) {
+    chromePathCandidates.push(envChromePath);
+  }
+
+  if (process.platform === 'darwin') {
+    chromePathCandidates.push('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
+  } else if (process.platform === 'win32') {
+    chromePathCandidates.push('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe');
+    chromePathCandidates.push('C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe');
+  } else {
+    chromePathCandidates.push('/usr/bin/google-chrome');
+    chromePathCandidates.push('/usr/bin/google-chrome-stable');
+    chromePathCandidates.push('/snap/bin/chromium');
+  }
 }
 
 const chromeExecutable = chromePathCandidates.find((candidate) => {
@@ -31,10 +41,10 @@ const chromeExecutable = chromePathCandidates.find((candidate) => {
   }
 });
 
-const resolvedChannel =
-  process.env.PW_CHANNEL ?? process.env.PLAYWRIGHT_CHANNEL ?? (isCI ? undefined : 'chrome');
+const resolvedChannel = requestedChannel ?? (useSystemChrome ? 'chrome' : undefined);
 
 if (process.env.DEBUG_PLAYWRIGHT_CONFIG) {
+  console.log('[playwright-config] useSystemChrome:', useSystemChrome);
   console.log('[playwright-config] chromeExecutable:', chromeExecutable);
   console.log('[playwright-config] resolvedChannel:', resolvedChannel);
 }
@@ -51,6 +61,16 @@ fs.mkdirSync(path.join(pwHome, 'Library', 'Application Support', 'Google', 'Chro
 fs.mkdirSync(userDataDir, { recursive: true });
 fs.mkdirSync(crashDir, { recursive: true });
 
+const launchArgs: string[] = [
+  `--crash-dumps-dir=${crashDir}`,
+  '--noerrdialogs',
+  '--disable-dev-shm-usage'
+];
+
+if (useSystemChrome) {
+  launchArgs.push('--disable-crashpad-for-testing', '--disable-crash-reporter', '--no-zygote');
+}
+
 const baseUse: Parameters<typeof defineConfig>[0]['use'] = {
   browserName: 'chromium',
   trace: 'on-first-retry',
@@ -58,14 +78,7 @@ const baseUse: Parameters<typeof defineConfig>[0]['use'] = {
   video: 'retain-on-failure',
   userDataDir,
   launchOptions: {
-    args: [
-      `--crash-dumps-dir=${crashDir}`,
-      '--noerrdialogs',
-      '--disable-dev-shm-usage',
-      '--disable-crashpad-for-testing',
-      '--disable-crash-reporter',
-      '--no-zygote'
-    ],
+    args: launchArgs,
     env: {
       ...process.env,
       HOME: pwHome,
@@ -80,7 +93,7 @@ if (chromeExecutable) {
     executablePath: chromeExecutable
   };
   baseUse.channel = undefined;
-} else if (resolvedChannel) {
+} else if (resolvedChannel && useSystemChrome) {
   baseUse.channel = resolvedChannel;
 }
 
