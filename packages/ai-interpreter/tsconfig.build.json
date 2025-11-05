@@ -10,7 +10,9 @@
     "declarationMap": true,
     "emitDeclarationOnly": false
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*"
+  ],
   "exclude": [
     "src/**/*.test.*",
     "src/**/*.spec.*",

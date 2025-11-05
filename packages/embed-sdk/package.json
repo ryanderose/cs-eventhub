@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "pnpm run build:deps && tsup --config tsup.config.ts --clean && tsc -p tsconfig.build.json",
-    "build:deps": "tsc -p ../router-helpers/tsconfig.build.json && tsc -p ../page-schema/tsconfig.build.json && tsc -p ../telemetry/tsconfig.build.json",
+    "build:deps": "pnpm --filter @events-hub/page-schema build && pnpm --filter @events-hub/router-helpers build && pnpm --filter @events-hub/telemetry build",
     "dev": "tsup --config tsup.config.ts --watch",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "vitest run",
