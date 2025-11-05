@@ -45,6 +45,25 @@ ensure_ssl_cert_bundle() {
 load_env_file "$PRIMARY_ENV"
 load_env_file "$LOCAL_ENV"
 
+# Allow CI providers to expose Turbo credentials under provider-specific names
+if [ -z "${TURBO_TOKEN:-}" ]; then
+  for candidate in GITHUB_TURBO_TOKEN VERCEL_TURBO_TOKEN; do
+    if [ -n "${!candidate:-}" ]; then
+      TURBO_TOKEN="${!candidate}"
+      break
+    fi
+  done
+fi
+
+if [ -z "${TURBO_TEAM:-}" ]; then
+  for candidate in GITHUB_TURBO_TEAM VERCEL_TURBO_TEAM; do
+    if [ -n "${!candidate:-}" ]; then
+      TURBO_TEAM="${!candidate}"
+      break
+    fi
+  done
+fi
+
 if [ -z "${TURBO_TOKEN:-}" ] && [ -n "${TURBO_TOKEN_FILE:-}" ] && [ -f "$TURBO_TOKEN_FILE" ]; then
   TURBO_TOKEN="$(<"$TURBO_TOKEN_FILE")"
 fi
