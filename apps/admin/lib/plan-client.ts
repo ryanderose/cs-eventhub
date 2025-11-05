@@ -2,6 +2,9 @@ import { PageDoc } from '@events-hub/page-schema';
 
 const rawEndpoint = process.env.NEXT_PUBLIC_DEFAULT_PLAN_ENDPOINT?.trim();
 const DEFAULT_PLAN_ENDPOINT = rawEndpoint && rawEndpoint.length ? rawEndpoint : '/api/default-plan';
+const DEFAULT_SERVER_ORIGIN =
+  process.env.ADMIN_SELF_ORIGIN ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3001');
 
 export type DefaultPlanResponse = {
   plan: PageDoc;
@@ -24,20 +27,28 @@ export class ApiError extends Error {
 
 const ABSOLUTE_ENDPOINT_PATTERN = /^https?:\/\//i;
 
-function buildUrl(searchParams?: Record<string, string | undefined>): string {
-  const isAbsolute = ABSOLUTE_ENDPOINT_PATTERN.test(DEFAULT_PLAN_ENDPOINT);
-  const url = isAbsolute
-    ? new URL(DEFAULT_PLAN_ENDPOINT)
-    : new URL(DEFAULT_PLAN_ENDPOINT, 'http://localhost');
+function withSearchParams(url: URL, searchParams?: Record<string, string | undefined>): string {
   Object.entries(searchParams ?? {}).forEach(([key, value]) => {
     if (value !== undefined) {
       url.searchParams.set(key, value);
     }
   });
-  if (isAbsolute) {
-    return url.toString();
+  return url.toString();
+}
+
+function buildUrl(searchParams?: Record<string, string | undefined>): string {
+  if (typeof window !== 'undefined') {
+    const url = ABSOLUTE_ENDPOINT_PATTERN.test(DEFAULT_PLAN_ENDPOINT)
+      ? new URL(DEFAULT_PLAN_ENDPOINT)
+      : new URL(DEFAULT_PLAN_ENDPOINT, window.location.origin);
+    return withSearchParams(url, searchParams);
   }
-  return url.toString().replace('http://localhost', '');
+
+  if (ABSOLUTE_ENDPOINT_PATTERN.test(DEFAULT_PLAN_ENDPOINT)) {
+    return withSearchParams(new URL(DEFAULT_PLAN_ENDPOINT), searchParams);
+  }
+
+  return withSearchParams(new URL(DEFAULT_PLAN_ENDPOINT, DEFAULT_SERVER_ORIGIN), searchParams);
 }
 
 async function readJson(response: Response) {

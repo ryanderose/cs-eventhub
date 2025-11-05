@@ -23,7 +23,9 @@ ADMIN_API_BYPASS_TOKEN=<vercel bypass token>
 ADMIN_API_BYPASS_SIGNATURE=<optional signature>
 ```
 
-When unset, the proxy falls back to `http://localhost:4000` which matches the local API dev server. Optional: set `NEXT_PUBLIC_CONFIG_URL` if the dashboard should surface embed configuration links.
+When running in production/preview the server needs to know its own host to turn `/api/default-plan` into an absolute URL. Set `ADMIN_SELF_ORIGIN=https://adminbeta.townthink.com` (preview) and `ADMIN_SELF_ORIGIN=https://admin.townthink.com` (production). Locally the code falls back to `http://localhost:3001`.
+
+Optional: set `NEXT_PUBLIC_CONFIG_URL` if the dashboard should surface embed configuration links.
 
 ## Blocks management
 

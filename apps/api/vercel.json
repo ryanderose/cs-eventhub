@@ -10,6 +10,7 @@
     "cs-eventhub-api.vercel.app"
   ],
   "rewrites": [
+    { "source": "/health", "destination": "/api/health" },
     { "source": "/v1/compose", "destination": "/api/v1/compose" },
     { "source": "/v1/fragment/(.*)", "destination": "/api/v1/fragment?tenantId=$1" },
     { "source": "/v1/plan/default", "destination": "/api/v1/plan/default" },
