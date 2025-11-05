@@ -1,10 +1,27 @@
 import { PageDoc } from '@events-hub/page-schema';
 
-const rawEndpoint = process.env.NEXT_PUBLIC_DEFAULT_PLAN_ENDPOINT?.trim();
-const DEFAULT_PLAN_ENDPOINT = rawEndpoint && rawEndpoint.length ? rawEndpoint : '/api/default-plan';
-const DEFAULT_SERVER_ORIGIN =
-  process.env.ADMIN_SELF_ORIGIN ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3001');
+const rawClientEndpoint = process.env.NEXT_PUBLIC_DEFAULT_PLAN_ENDPOINT?.trim();
+const CLIENT_PLAN_ENDPOINT =
+  rawClientEndpoint && rawClientEndpoint.length ? rawClientEndpoint : '/api/default-plan';
+
+const SERVER_API_BASE =
+  process.env.ADMIN_API_BASE ??
+  process.env.API_BASE ??
+  process.env.PREVIEW_API_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  'http://localhost:4000';
+
+const SERVER_BYPASS_TOKEN =
+  process.env.ADMIN_API_BYPASS_TOKEN ??
+  process.env.VERCEL_PROTECTION_BYPASS_API ??
+  process.env.VERCEL_PROTECTION_BYPASS ??
+  '';
+
+const SERVER_BYPASS_SIGNATURE =
+  process.env.ADMIN_API_BYPASS_SIGNATURE ??
+  process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE_API ??
+  process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE ??
+  '';
 
 export type DefaultPlanResponse = {
   plan: PageDoc;
@@ -25,30 +42,10 @@ export class ApiError extends Error {
   }
 }
 
-const ABSOLUTE_ENDPOINT_PATTERN = /^https?:\/\//i;
-
-function withSearchParams(url: URL, searchParams?: Record<string, string | undefined>): string {
-  Object.entries(searchParams ?? {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      url.searchParams.set(key, value);
-    }
-  });
+function buildServerUrl(path: string): string {
+  const url = new URL(path, SERVER_API_BASE);
+  url.searchParams.set('tenantId', 'demo');
   return url.toString();
-}
-
-function buildUrl(searchParams?: Record<string, string | undefined>): string {
-  if (typeof window !== 'undefined') {
-    const url = ABSOLUTE_ENDPOINT_PATTERN.test(DEFAULT_PLAN_ENDPOINT)
-      ? new URL(DEFAULT_PLAN_ENDPOINT)
-      : new URL(DEFAULT_PLAN_ENDPOINT, window.location.origin);
-    return withSearchParams(url, searchParams);
-  }
-
-  if (ABSOLUTE_ENDPOINT_PATTERN.test(DEFAULT_PLAN_ENDPOINT)) {
-    return withSearchParams(new URL(DEFAULT_PLAN_ENDPOINT), searchParams);
-  }
-
-  return withSearchParams(new URL(DEFAULT_PLAN_ENDPOINT, DEFAULT_SERVER_ORIGIN), searchParams);
 }
 
 async function readJson(response: Response) {
@@ -69,24 +66,51 @@ async function handleResponse(response: Response) {
   throw new ApiError(response.status, response.statusText, payload);
 }
 
+function serverHeaders(init?: HeadersInit): Headers {
+  const headers = new Headers(init);
+  headers.set('accept', 'application/json');
+  if (SERVER_BYPASS_TOKEN) {
+    headers.set('x-vercel-protection-bypass', SERVER_BYPASS_TOKEN);
+  }
+  if (SERVER_BYPASS_SIGNATURE) {
+    headers.set('x-vercel-protection-bypass-signature', SERVER_BYPASS_SIGNATURE);
+  }
+  return headers;
+}
+
 export async function fetchDefaultPlan(init?: RequestInit): Promise<DefaultPlanResponse> {
-  const requestInit: RequestInit = {
+  if (typeof window === 'undefined') {
+    const response = await fetch(buildServerUrl('/v1/plan/default'), {
+      ...init,
+      cache: 'no-store',
+      headers: serverHeaders(init?.headers)
+    });
+    return handleResponse(response);
+  }
+
+  const response = await fetch(CLIENT_PLAN_ENDPOINT, {
     ...init,
     cache: 'no-store',
     headers: {
       Accept: 'application/json',
       ...(init?.headers ?? {})
     }
-  };
-  if (typeof window === 'undefined') {
-    (requestInit as RequestInit & { next?: { revalidate: number } }).next = { revalidate: 0 };
-  }
-  const response = await fetch(buildUrl(), requestInit);
+  });
   return handleResponse(response);
 }
 
 export async function saveDefaultPlan(plan: PageDoc): Promise<DefaultPlanResponse> {
-  const response = await fetch(buildUrl(), {
+  if (typeof window === 'undefined') {
+    const response = await fetch(buildServerUrl('/v1/plan/default'), {
+      method: 'PUT',
+      cache: 'no-store',
+      headers: serverHeaders({ 'content-type': 'application/json' }),
+      body: JSON.stringify({ plan })
+    });
+    return handleResponse(response);
+  }
+
+  const response = await fetch(CLIENT_PLAN_ENDPOINT, {
     method: 'PUT',
     cache: 'no-store',
     headers: {
