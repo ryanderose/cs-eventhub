@@ -15,13 +15,15 @@ Next.js dashboard for Events Hub administration.
 
 ## Environment variables
 
-The admin client reads the default plan API base URL from `NEXT_PUBLIC_API_BASE`. When unset, it falls back to `http://localhost:3001`.
+`/blocks` now talks to the API via the internal route `/api/default-plan`, which keeps preview bypass tokens on the server. Configure these vars in the admin project:
 
 ```
-NEXT_PUBLIC_API_BASE=http://localhost:3001
+ADMIN_API_BASE=https://apibeta.townthink.com
+ADMIN_API_BYPASS_TOKEN=<vercel bypass token>
+ADMIN_API_BYPASS_SIGNATURE=<optional signature>
 ```
 
-Optional: set `NEXT_PUBLIC_CONFIG_URL` if the dashboard should surface embed configuration links.
+When unset, the proxy falls back to `http://localhost:4000` which matches the local API dev server. Optional: set `NEXT_PUBLIC_CONFIG_URL` if the dashboard should surface embed configuration links.
 
 ## Blocks management
 

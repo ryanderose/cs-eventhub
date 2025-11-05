@@ -1,6 +1,7 @@
 import { PageDoc } from '@events-hub/page-schema';
 
-const DEFAULT_API_BASE = 'http://localhost:4000';
+const rawEndpoint = process.env.NEXT_PUBLIC_DEFAULT_PLAN_ENDPOINT?.trim();
+const DEFAULT_PLAN_ENDPOINT = rawEndpoint && rawEndpoint.length ? rawEndpoint : '/api/default-plan';
 
 export type DefaultPlanResponse = {
   plan: PageDoc;
@@ -21,29 +22,22 @@ export class ApiError extends Error {
   }
 }
 
-function getApiBase(): string {
-  const candidates = [
-    process.env.NEXT_PUBLIC_API_URL,
-    process.env.NEXT_PUBLIC_API_BASE
-  ];
-  for (const candidate of candidates) {
-    const trimmed = candidate?.trim();
-    if (trimmed) {
-      return trimmed;
-    }
-  }
-  return DEFAULT_API_BASE;
-}
+const ABSOLUTE_ENDPOINT_PATTERN = /^https?:\/\//i;
 
-function buildUrl(path: string, searchParams?: Record<string, string | undefined>): string {
-  const url = new URL(path, getApiBase());
-  url.searchParams.set('tenantId', 'demo');
+function buildUrl(searchParams?: Record<string, string | undefined>): string {
+  const isAbsolute = ABSOLUTE_ENDPOINT_PATTERN.test(DEFAULT_PLAN_ENDPOINT);
+  const url = isAbsolute
+    ? new URL(DEFAULT_PLAN_ENDPOINT)
+    : new URL(DEFAULT_PLAN_ENDPOINT, 'http://localhost');
   Object.entries(searchParams ?? {}).forEach(([key, value]) => {
     if (value !== undefined) {
       url.searchParams.set(key, value);
     }
   });
-  return url.toString();
+  if (isAbsolute) {
+    return url.toString();
+  }
+  return url.toString().replace('http://localhost', '');
 }
 
 async function readJson(response: Response) {
@@ -76,12 +70,12 @@ export async function fetchDefaultPlan(init?: RequestInit): Promise<DefaultPlanR
   if (typeof window === 'undefined') {
     (requestInit as RequestInit & { next?: { revalidate: number } }).next = { revalidate: 0 };
   }
-  const response = await fetch(buildUrl('/v1/plan/default'), requestInit);
+  const response = await fetch(buildUrl(), requestInit);
   return handleResponse(response);
 }
 
 export async function saveDefaultPlan(plan: PageDoc): Promise<DefaultPlanResponse> {
-  const response = await fetch(buildUrl('/v1/plan/default'), {
+  const response = await fetch(buildUrl(), {
     method: 'PUT',
     cache: 'no-store',
     headers: {

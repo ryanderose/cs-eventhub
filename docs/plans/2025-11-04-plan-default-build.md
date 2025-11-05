@@ -69,8 +69,8 @@
 - [x] Turbo build cache reflects new `dist/**` outputs (`pnpm -w build` twice shows cache hits).
 - [x] CI preview job passes `pnpm --filter @events-hub/api test:contract:preview`.
 - [x] Preview smoke Playwright tests pass: `pnpm test:e2e:preview` and `pnpm test:parity`.
-**Manual**
-- [ ] Vercel build logs show package build steps executing before API bundling.
+- **Manual**
+- [x] Vercel build logs show package build steps executing before API bundling.
 - [x] `/v1/plan/default` endpoint on a preview deployment returns HTTP 200 with plan payload.
 
 ---
@@ -84,11 +84,12 @@
 
 **Success Criteria**  
 **Automated**
-- [ ] Contract tests: `pnpm --filter @events-hub/api test:contract:preview`.
-- [ ] Smoke tests: `pnpm test:e2e:preview`.
+- [x] Contract tests: `pnpm --filter @events-hub/api test:contract:preview`.
+- [x] Smoke tests: `pnpm test:e2e:preview`.
+- [x] Parity tests: `pnpm test:parity`.
 **Manual**
-- [ ] Curl preview base (`curl -s https://cs-eventhub-<preview>.vercel.app/v1/plan/default | jq`) shows valid JSON.
-- [ ] Monitor logs in Vercel for 30 minutes—no `Cannot find module ... index.ts` errors.
+- [x] Curl preview base (`curl -s https://cs-eventhub-<preview>.vercel.app/v1/plan/default | jq`) shows valid JSON.
+- [x] Monitor logs in Vercel for 30 minutes—no `Cannot find module ... index.ts` errors.
 
 ## Testing Strategy
 - **Unit:** Existing package tests still run via `pnpm -w test`; add focused tests if any build tooling adjustments require new behaviors (e.g., verify exported helpers behave the same).
