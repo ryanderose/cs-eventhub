@@ -62,7 +62,14 @@ function ensureContiguousOrders(blocks: Array<{ order: number }>): boolean {
   return true;
 }
 
+function setCorsHeaders(res: ApiResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
 function respond(res: ApiResponse, status: number, payload: unknown) {
+  setCorsHeaders(res);
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.status(status).json(payload);
@@ -87,6 +94,12 @@ function normalisePlanFromRequest(plan: PageDoc, tenantId: string): PageDoc {
 export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Promise<void> {
   const method = req.method ?? 'GET';
   const tenantId = resolveTenantId(req);
+
+  if (method === 'OPTIONS') {
+    setCorsHeaders(res);
+    res.status(204).end();
+    return;
+  }
 
   if (method === 'GET') {
     const span = startSpan('defaultPlan.fetch');

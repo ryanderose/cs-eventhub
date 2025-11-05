@@ -79,13 +79,31 @@ export function createApp() {
     res.status(200).send('OK');
   });
 
-  app.all('/api/v1/plan/default', wrap(handleDefaultPlan));
-  app.get('/api/v1/plan/:id', wrap(handlePlanById));
-  app.post('/api/v1/compose', wrap(handleCompose));
-  app.post('/api/v1/interpret', wrap(handleInterpret));
+  const planDefaultPaths = ['/api/v1/plan/default', '/v1/plan/default'];
+  for (const path of planDefaultPaths) {
+    app.all(path, wrap(handleDefaultPlan));
+  }
+
+  const planByIdPaths = ['/api/v1/plan/:id', '/v1/plan/:id'];
+  for (const path of planByIdPaths) {
+    app.get(path, wrap(handlePlanById));
+  }
+
+  const composePaths = ['/api/v1/compose', '/v1/compose'];
+  for (const path of composePaths) {
+    app.post(path, wrap(handleCompose));
+  }
+
+  const interpretPaths = ['/api/v1/interpret', '/v1/interpret'];
+  for (const path of interpretPaths) {
+    app.post(path, wrap(handleInterpret));
+  }
   app.options('/api/config/tenants/:tenant', wrap(handleTenantConfig));
   app.get('/api/config/tenants/:tenant', wrap(handleTenantConfig));
-  app.get('/api/v1/fragment', wrap(proxyFragment));
+  const fragmentPaths = ['/api/v1/fragment', '/v1/fragment'];
+  for (const path of fragmentPaths) {
+    app.get(path, wrap(proxyFragment));
+  }
 
   return app;
 }

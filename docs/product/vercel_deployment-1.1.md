@@ -289,8 +289,8 @@ export default async function handler(request: Request) {
 ### apps/demo-host/.env.local
 
 ```env
-NEXT_PUBLIC_API_BASE=http://localhost:3000
-NEXT_PUBLIC_CONFIG_URL=http://localhost:3000/config/tenants/demo.json
+NEXT_PUBLIC_API_BASE=http://localhost:4000
+NEXT_PUBLIC_CONFIG_URL=http://localhost:4000/api/config/tenants/demo.json
 NEXT_PUBLIC_EMBED_MODE=linked
 NEXT_PUBLIC_EMBED_SRC=http://localhost:5173/hub-embed.umd.js
 NEXT_PUBLIC_EMBED_MANIFEST=http://localhost:5173/manifest.json
@@ -302,8 +302,8 @@ FRAGMENT_STALE_SECONDS=1
 ### apps/admin/.env.local
 
 ```env
-NEXT_PUBLIC_API_BASE=http://localhost:3000
-NEXT_PUBLIC_CONFIG_URL=http://localhost:3000/config/tenants/demo.json
+NEXT_PUBLIC_API_BASE=http://localhost:4000
+NEXT_PUBLIC_CONFIG_URL=http://localhost:4000/api/config/tenants/demo.json
 NEXT_PUBLIC_EMBED_MANIFEST=http://localhost:5173/manifest.json
 ```
 
@@ -334,4 +334,3 @@ PLAN_CACHE_TTL_SECONDS=60
 ---
 
 **Done.** Copy these blocks into the repo as `vercel_deployment.md`, and commit the four `.env.example` files in their respective app folders.
-
