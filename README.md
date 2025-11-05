@@ -53,4 +53,4 @@ When `pnpm-lock.yaml` diverges between branches, use the **Refresh pnpm lockfile
 
 If you prefer to resolve conflicts locally, pull or rebase against `main`, run `pnpm install --lockfile-only`, verify the resulting diff, and commit the refreshed `pnpm-lock.yaml` alongside the related `package.json`. CI runs `pnpm install --frozen-lockfile`, so the update must be part of your changeset.
 
-Have a good day!
+Have a good DAY!
