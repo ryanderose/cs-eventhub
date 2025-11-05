@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { compareEndpoints } from '../../fixtures/parity';
+import { compareEndpoints, ParityBaselineUnavailableError } from '../../fixtures/parity';
 
 function resolvePreviewApiBase(url: string): string {
   if (process.env.PREVIEW_API_URL) {
@@ -18,14 +18,22 @@ test('default plan parity headers @preview @parity', async () => {
   const previewBase = resolvePreviewApiBase(previewHost);
   const localBaseline = process.env.LOCAL_API_URL ?? process.env.PARITY_BASELINE_API_URL ?? 'https://cs-eventhub-api.vercel.app';
 
-  await compareEndpoints(localBaseline, previewBase, [
-    {
-      path: '/api/v1/plan/default',
-      pickHeaders: ['content-type', 'cache-control']
-    },
-    {
-      path: '/api/v1/fragment?tenant=demo',
-      pickHeaders: ['cache-control']
+  try {
+    await compareEndpoints(localBaseline, previewBase, [
+      {
+        path: '/api/v1/plan/default',
+        pickHeaders: ['content-type', 'cache-control']
+      },
+      {
+        path: '/api/v1/fragment?tenant=demo',
+        pickHeaders: ['cache-control']
+      }
+    ]);
+  } catch (error) {
+    if (error instanceof ParityBaselineUnavailableError) {
+      test.skip(error.message);
+      return;
     }
-  ]);
+    throw error;
+  }
 });

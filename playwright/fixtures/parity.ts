@@ -1,3 +1,10 @@
+export class ParityBaselineUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ParityBaselineUnavailableError';
+  }
+}
+
 type HeaderCheck = {
   path: string;
   pickHeaders: string[];
@@ -24,7 +31,14 @@ function resolveBypassHeaders(): Record<string, string> | undefined {
   return Object.keys(headers).length ? headers : undefined;
 }
 
-async function fetchWithMethod(baseUrl: string, path: string, init: RequestInit | undefined, label: string) {
+type FetchResult = {
+  status: number;
+  headers: Headers;
+  body: string;
+  url: string;
+};
+
+async function fetchWithMethod(baseUrl: string, path: string, init: RequestInit | undefined, label: string): Promise<FetchResult> {
   const url = new URL(path, baseUrl);
   const headers = new Headers(init?.headers);
   const bypassHeaders = resolveBypassHeaders();
@@ -38,7 +52,8 @@ async function fetchWithMethod(baseUrl: string, path: string, init: RequestInit 
     return {
       status: response.status,
       headers: response.headers,
-      body: await response.text()
+      body: await response.text(),
+      url: url.toString()
     };
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
@@ -56,6 +71,12 @@ export async function compareEndpoints(
       fetchWithMethod(localBase, path, { method }, 'local'),
       fetchWithMethod(previewBase, path, { method }, 'preview')
     ]);
+
+    if (local.status >= 500) {
+      throw new ParityBaselineUnavailableError(
+        `Baseline returned ${local.status} for ${local.url} (body=${local.body.slice(0, 120)})`
+      );
+    }
 
     if (local.status !== preview.status) {
       throw new Error(`Status mismatch for ${path}: local ${local.status} vs preview ${preview.status}`);
