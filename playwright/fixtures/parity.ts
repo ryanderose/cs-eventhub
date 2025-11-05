@@ -24,7 +24,7 @@ function resolveBypassHeaders(): Record<string, string> | undefined {
   return Object.keys(headers).length ? headers : undefined;
 }
 
-async function fetchWithMethod(baseUrl: string, path: string, init?: RequestInit) {
+async function fetchWithMethod(baseUrl: string, path: string, init: RequestInit | undefined, label: string) {
   const url = new URL(path, baseUrl);
   const headers = new Headers(init?.headers);
   const bypassHeaders = resolveBypassHeaders();
@@ -33,12 +33,17 @@ async function fetchWithMethod(baseUrl: string, path: string, init?: RequestInit
       headers.set(key, value);
     }
   }
-  const response = await fetch(url, { ...init, headers });
-  return {
-    status: response.status,
-    headers: response.headers,
-    body: await response.text()
-  };
+  try {
+    const response = await fetch(url, { ...init, headers });
+    return {
+      status: response.status,
+      headers: response.headers,
+      body: await response.text()
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`fetch failed for ${label} ${url.toString()}: ${reason}`);
+  }
 }
 
 export async function compareEndpoints(
@@ -48,8 +53,8 @@ export async function compareEndpoints(
 ): Promise<void> {
   for (const { path, pickHeaders, method = 'GET' } of checks) {
     const [local, preview] = await Promise.all([
-      fetchWithMethod(localBase, path, { method }),
-      fetchWithMethod(previewBase, path, { method })
+      fetchWithMethod(localBase, path, { method }, 'local'),
+      fetchWithMethod(previewBase, path, { method }, 'preview')
     ]);
 
     if (local.status !== preview.status) {

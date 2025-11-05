@@ -16,9 +16,9 @@ test('default plan parity headers @preview @parity', async () => {
   test.skip(!process.env.PREVIEW_URL, 'PREVIEW_URL is required for parity checks');
   const previewHost = process.env.PREVIEW_URL!;
   const previewBase = resolvePreviewApiBase(previewHost);
-  const localApiBase = process.env.LOCAL_API_URL ?? 'http://localhost:4000';
+  const localBaseline = process.env.LOCAL_API_URL ?? process.env.PARITY_BASELINE_API_URL ?? 'https://cs-eventhub-api.vercel.app';
 
-  await compareEndpoints(localApiBase, previewBase, [
+  await compareEndpoints(localBaseline, previewBase, [
     {
       path: '/api/v1/plan/default',
       pickHeaders: ['content-type', 'cache-control']
