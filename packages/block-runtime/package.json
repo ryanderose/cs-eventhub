@@ -2,10 +2,10 @@
   "name": "@events-hub/block-runtime",
   "version": "0.0.0",
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "echo 'build stub'",
+    "build": "tsc -p tsconfig.build.json",
     "test": "echo 'test stub'",
     "lint": "echo 'lint stub'"
   },
@@ -13,5 +13,15 @@
     "@events-hub/block-registry": "workspace:*",
     "@events-hub/page-schema": "workspace:*",
     "preact": "10.19.3"
-  }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ]
 }

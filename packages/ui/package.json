@@ -2,10 +2,10 @@
   "name": "@events-hub/ui",
   "version": "0.0.0",
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "echo 'build stub'",
+    "build": "tsc -p tsconfig.build.json",
     "test": "echo 'test stub'",
     "lint": "echo 'lint stub'"
   },
@@ -19,5 +19,15 @@
   "devDependencies": {
     "@testing-library/react": "14.2.1",
     "@testing-library/jest-dom": "6.4.1"
-  }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ]
 }

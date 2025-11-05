@@ -1,23 +1,26 @@
 {
   "name": "@events-hub/page-schema",
   "version": "0.0.0",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
-  "module": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.js",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts",
-      "require": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
     }
   },
   "sideEffects": false,
   "scripts": {
-    "build": "echo 'build stub'",
+    "build": "tsc -p tsconfig.build.json",
     "test": "echo 'test stub'",
     "lint": "echo 'lint stub'"
   },
   "dependencies": {
     "zod": "3.22.4"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }
