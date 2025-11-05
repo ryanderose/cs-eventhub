@@ -67,11 +67,11 @@
 **Success Criteria**  
 **Automated**
 - [x] Turbo build cache reflects new `dist/**` outputs (`pnpm -w build` twice shows cache hits).
-- [ ] CI preview job passes `pnpm --filter @events-hub/api test:contract:preview`.
-- [ ] Preview smoke Playwright tests pass: `pnpm test:e2e:preview` and `pnpm test:parity`.
+- [x] CI preview job passes `pnpm --filter @events-hub/api test:contract:preview`.
+- [x] Preview smoke Playwright tests pass: `pnpm test:e2e:preview` and `pnpm test:parity`.
 **Manual**
 - [ ] Vercel build logs show package build steps executing before API bundling.
-- [ ] `/v1/plan/default` endpoint on a preview deployment returns HTTP 200 with plan payload.
+- [x] `/v1/plan/default` endpoint on a preview deployment returns HTTP 200 with plan payload.
 
 ---
 
@@ -79,8 +79,8 @@
 **Goal:** Validate the fix through redeployments and monitor for regressions.
 
 **Changes**
-- Ops: Trigger new Preview deploy; once validated, promote to Production.
-- Docs: Update `docs/engineering/embed-dev.md` (or relevant runbooks) with note that packages must be built before deployment.
+- [ ] Ops: Trigger new Preview deploy; once validated, promote to Production.
+- [x] Docs: Update `docs/engineering/embed-dev.md` (or relevant runbooks) with note that packages must be built before deployment.
 
 **Success Criteria**  
 **Automated**

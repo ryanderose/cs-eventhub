@@ -20,6 +20,14 @@ The demo host supports two loading modes controlled by `NEXT_PUBLIC_EMBED_MODE`:
 
 Toggle `NEXT_PUBLIC_EMBED_MODE` in `apps/demo-host/.env.local` to switch without restarting the server.
 
+## Shared package builds
+
+Every shared `@events-hub/*` package must emit JavaScript before the API (or any Vercel build) is deployed. Run `pnpm -w build` so Turbo builds library `dist/` folders before each app. Re-running the command is cheap because the pipeline caches each `dist/**` output.
+
+- When iterating on a single package, `pnpm --filter <package> build` regenerates its `dist/` output without touching the rest of the workspace.
+- Vercel projects should use `pnpm install --frozen-lockfile && pnpm -w build` as the Build Command so compiled artifacts exist before bundling serverless functions.
+- If a deploy logs `Cannot find module ".../src/index.ts"`, rebuild locally, commit the refreshed `dist/` artifacts if they are tracked, and redeploy so the runtime reads `dist/index.js`.
+
 ## Default plan hydration
 
 The demo host now fetches the default block plan from the API when `NEXT_PUBLIC_PLAN_MODE` is set to `beta` or `prod`. On initial load it renders the embedded sample plan, then hydrates with the API response once available. The status panel in the host shows whether the current view is using the API or fallback data.
