@@ -4,9 +4,36 @@ type HeaderCheck = {
   method?: string;
 };
 
+function resolveBypassHeaders(): Record<string, string> | undefined {
+  const headers: Record<string, string> = {};
+  const scopedToken = process.env.VERCEL_PROTECTION_BYPASS_API;
+  const scopedSignature = process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE_API;
+  const fallbackToken = process.env.VERCEL_PROTECTION_BYPASS;
+  const fallbackSignature = process.env.VERCEL_PROTECTION_BYPASS_SIGNATURE;
+
+  const token = scopedToken ?? fallbackToken;
+  const signature = scopedSignature ?? fallbackSignature;
+
+  if (token) {
+    headers['x-vercel-protection-bypass'] = token;
+  }
+  if (signature) {
+    headers['x-vercel-protection-bypass-signature'] = signature;
+  }
+
+  return Object.keys(headers).length ? headers : undefined;
+}
+
 async function fetchWithMethod(baseUrl: string, path: string, init?: RequestInit) {
   const url = new URL(path, baseUrl);
-  const response = await fetch(url, init);
+  const headers = new Headers(init?.headers);
+  const bypassHeaders = resolveBypassHeaders();
+  if (bypassHeaders) {
+    for (const [key, value] of Object.entries(bypassHeaders)) {
+      headers.set(key, value);
+    }
+  }
+  const response = await fetch(url, { ...init, headers });
   return {
     status: response.status,
     headers: response.headers,
