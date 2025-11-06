@@ -143,6 +143,11 @@ async function cleanup(exitCode) {
 async function main() {
   const { servers, testArgs } = scenarios[scenario];
 
+  if (scenario === 'local') {
+    console.log('[run-e2e] Ensuring Playwright browsers are installed...');
+    await runCommand('pnpm', ['exec', 'playwright', 'install', '--with-deps']);
+  }
+
   servers.forEach(startServer);
   console.log('[run-e2e] Waiting for dev servers to become ready...');
   await Promise.all(servers.map(({ url }) => waitForUrl(url)));
