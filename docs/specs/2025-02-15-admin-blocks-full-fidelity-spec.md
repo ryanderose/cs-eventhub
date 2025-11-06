@@ -1,6 +1,6 @@
 ---
 title: "Admin Blocks Full-Fidelity Preview"
-date: "2025-02-15"
+date: "2025-11-05"
 authors: ["ChatGPT Codex 5"]
 status: "draft"
 related_research: "../research/2025-10-31-admin-default-embed-research.md"

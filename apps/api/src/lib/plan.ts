@@ -5,6 +5,7 @@ import { kv } from '@vercel/kv';
 type KvClient = {
   set: (key: string, value: string, options?: { ex?: number }) => Promise<unknown>;
   get: <T = unknown>(key: string) => Promise<T | null>;
+  del: (key: string) => Promise<number>;
 };
 
 const kvClient = kv as unknown as KvClient;
@@ -86,6 +87,19 @@ export async function resolveEncodedPlan(planHash: string) {
     return null;
   }
   return entry.encoded;
+}
+
+export async function deleteEncodedPlan(planHash: string) {
+  const key = planKey(planHash);
+  if (kvAvailable()) {
+    try {
+      await kvClient.del(key);
+    } catch (error) {
+      console.warn('[deleteEncodedPlan] failed to delete KV entry', { key, error });
+    }
+  }
+  const cache = getMemoryCache();
+  cache.delete(key);
 }
 
 export function shouldInlinePlan(encoded: string): boolean {

@@ -15,4 +15,7 @@
   
 # ExecPlans
 
-When writing complex features or significant refactors, use an ExecPlan (as described in .ai/PLANS.md) from design to implementation.
+When writing complex features or significant refactors, use an ExecPlan (as described in .ai/PLANS.md) from design to implementation
+
+# Notes
+- If TURBO_TOKEN or TURBO_TEAM is not accessable, ask for them to be exported eg export TURBO_TEAM=scenethink-team.

@@ -16,6 +16,7 @@
   "dependencies": {
     "@events-hub/ai-composer": "workspace:*",
     "@events-hub/ai-interpreter": "workspace:*",
+    "@events-hub/default-plan": "workspace:*",
     "@events-hub/page-schema": "workspace:*",
     "@events-hub/router-helpers": "workspace:*",
     "@events-hub/security": "workspace:*",

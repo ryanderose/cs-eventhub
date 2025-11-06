@@ -1,8 +1,9 @@
+import { getDefaultBlockAllowlist } from '@events-hub/default-plan';
 import { PageDocSchema, type PageDoc } from '@events-hub/page-schema';
 import { startSpan } from '../lib/telemetry';
 import {
-  expectedSeedBlocks,
   getDefaultPageHash,
+  getDefaultPageStorageMode,
   loadSeedPlan,
   readDefaultPage,
   writeDefaultPage
@@ -10,7 +11,9 @@ import {
 import type { ApiRequest, ApiResponse } from './types';
 
 const DEFAULT_TENANT = 'demo';
-const MAX_BLOCKS = expectedSeedBlocks().length;
+const BLOCK_ALLOWLIST = getDefaultBlockAllowlist();
+const BLOCK_ALLOWLIST_MAP = new Map(BLOCK_ALLOWLIST.map((entry) => [entry.key, entry]));
+const MAX_BLOCKS = BLOCK_ALLOWLIST.length;
 
 function resolveTenantId(req: ApiRequest): string {
   const query = (req as any).query ?? {};
@@ -62,6 +65,27 @@ function ensureContiguousOrders(blocks: Array<{ order: number }>): boolean {
   return true;
 }
 
+function validateBlockTuples(blocks: Array<{ key: string; id: string; kind: string }>): {
+  valid: boolean;
+  message?: string;
+} {
+  const seenKeys = new Set<string>();
+  for (const block of blocks) {
+    if (seenKeys.has(block.key)) {
+      return { valid: false, message: `Duplicate block key: ${block.key}` };
+    }
+    seenKeys.add(block.key);
+    const allowed = BLOCK_ALLOWLIST_MAP.get(block.key);
+    if (!allowed) {
+      return { valid: false, message: `Unknown block key: ${block.key}` };
+    }
+    if (allowed.id !== block.id || allowed.kind !== block.kind) {
+      return { valid: false, message: `Block tuple mismatch for key: ${block.key}` };
+    }
+  }
+  return { valid: true };
+}
+
 function setCorsHeaders(res: ApiResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,OPTIONS');
@@ -104,6 +128,8 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
   if (method === 'GET') {
     const span = startSpan('defaultPlan.fetch');
     span.setAttribute('tenantId', tenantId);
+    const storageMode = getDefaultPageStorageMode();
+    span.setAttribute('storage.mode', storageMode);
     try {
       let record = await readDefaultPage(tenantId);
       let seeded = false;
@@ -114,6 +140,14 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
       }
       span.setAttribute('seeded', seeded);
       span.setAttribute('plan.hash', record.planHash);
+      span.setAttribute('block.count', record.plan.blocks.length);
+      console.info('[defaultPlan.fetch] success', {
+        tenantId,
+        planHash: record.planHash,
+        seeded,
+        storageMode,
+        blockCount: record.plan.blocks.length
+      });
       respond(res, 200, {
         plan: record.plan,
         encodedPlan: record.encodedPlan,
@@ -121,7 +155,7 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
         updatedAt: record.updatedAt
       });
     } catch (error) {
-      console.error('[defaultPlan.fetch] failed', error);
+      console.error('[defaultPlan.fetch] failed', { tenantId, storageMode, error });
       respond(res, 500, { error: 'default_plan_unavailable' });
     } finally {
       span.end();
@@ -138,6 +172,8 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
 
     const span = startSpan('defaultPlan.update');
     span.setAttribute('tenantId', tenantId);
+    const storageMode = getDefaultPageStorageMode();
+    span.setAttribute('storage.mode', storageMode);
 
     try {
       const parseResult = PageDocSchema.safeParse(body.plan);
@@ -154,6 +190,12 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
 
       if (!ensureContiguousOrders(incomingPlan.blocks)) {
         respond(res, 400, { error: 'invalid_block_order', message: 'Block order must be contiguous starting at 0.' });
+        return;
+      }
+
+      const tupleValidation = validateBlockTuples(incomingPlan.blocks);
+      if (!tupleValidation.valid) {
+        respond(res, 400, { error: 'invalid_block', message: tupleValidation.message });
         return;
       }
 
@@ -176,15 +218,11 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
 
       const baselinePlan = existingRecord?.plan ?? loadSeedPlan(tenantId);
       const baselineBlocks = new Map(baselinePlan.blocks.map((block) => [block.key, block]));
-      const expectedKeys = new Set(expectedSeedBlocks().map((block) => block.key));
 
       const reorderedBlocks = incomingPlan.blocks.map((block) => {
         const template = baselineBlocks.get(block.key);
         if (!template) {
           throw new Error(`Unknown block key: ${block.key}`);
-        }
-        if (!expectedKeys.has(block.key) || template.id !== block.id || template.kind !== block.kind) {
-          throw new Error(`Block mismatch for key: ${block.key}`);
         }
         return {
           ...template,
@@ -206,7 +244,14 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
 
       const record = await writeDefaultPage(updatedPlan);
       span.setAttribute('plan.hash', record.planHash);
-      console.info('[defaultPlan.update] success', { tenantId, planHash: record.planHash, source: 'admin' });
+      span.setAttribute('block.count', record.plan.blocks.length);
+      console.info('[defaultPlan.update] success', {
+        tenantId,
+        planHash: record.planHash,
+        source: 'admin',
+        storageMode,
+        blockCount: record.plan.blocks.length
+      });
 
       respond(res, 200, {
         plan: record.plan,
@@ -220,7 +265,7 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
       } else if (error instanceof Error && error.message.startsWith('Block mismatch')) {
         respond(res, 400, { error: 'invalid_block', message: error.message });
       } else {
-        console.error('[defaultPlan.update] failed', error);
+        console.error('[defaultPlan.update] failed', { tenantId, storageMode, error });
         respond(res, 503, { error: 'default_plan_persist_failed' });
       }
     } finally {

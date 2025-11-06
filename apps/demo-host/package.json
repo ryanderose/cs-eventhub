@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@events-hub/default-plan": "workspace:*",
     "@events-hub/embed-sdk": "workspace:*",
     "@events-hub/page-schema": "workspace:*",
     "next": "14.2.3",

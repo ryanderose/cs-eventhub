@@ -114,6 +114,9 @@ importers:
       '@events-hub/ai-interpreter':
         specifier: workspace:*
         version: link:../../packages/ai-interpreter
+      '@events-hub/default-plan':
+        specifier: workspace:*
+        version: link:../../packages/default-plan
       '@events-hub/page-schema':
         specifier: workspace:*
         version: link:../../packages/page-schema
@@ -154,6 +157,9 @@ importers:
 
   apps/demo-host:
     dependencies:
+      '@events-hub/default-plan':
+        specifier: workspace:*
+        version: link:../../packages/default-plan
       '@events-hub/embed-sdk':
         specifier: workspace:*
         version: link:../../packages/embed-sdk
@@ -225,6 +231,12 @@ importers:
         version: 11.1.0
 
   packages/data-providers:
+    dependencies:
+      '@events-hub/page-schema':
+        specifier: workspace:*
+        version: link:../page-schema
+
+  packages/default-plan:
     dependencies:
       '@events-hub/page-schema':
         specifier: workspace:*

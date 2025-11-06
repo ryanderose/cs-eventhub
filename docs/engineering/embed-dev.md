@@ -42,7 +42,7 @@ Seed the default plan pointer before switching to production mode:
 pnpm --filter @events-hub/api seed:default-plan -- --tenant demo
 ```
 
-The script writes the canonical seed plan via the pages-store helpers so the admin UI and demo host read consistent content. Pass `--tenant <id>` to target other tenants.
+Add `--force` when migrating an environment that already has the placeholder plan so the script rewrites the pointer and prunes the stale `plan:<hash>` entry. Use `--dry-run` to verify the action (and storage mode: KV vs. in-memory) without mutating state.
 
 ## Beta vs production manifests
 

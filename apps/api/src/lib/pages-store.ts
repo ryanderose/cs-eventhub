@@ -1,9 +1,6 @@
+import { createDefaultDemoPlan } from '@events-hub/default-plan';
 import { kv } from '@vercel/kv';
-import {
-  type BlockInstance,
-  type PageDoc,
-  withPlanHash
-} from '@events-hub/page-schema';
+import { type PageDoc, withPlanHash } from '@events-hub/page-schema';
 import { decodePlan, encodeCanonicalPlan, persistEncodedPlan, resolveEncodedPlan } from './plan';
 
 type KvClient = {
@@ -37,6 +34,10 @@ function getPointerCache(): Map<string, DefaultPagePointer> {
 
 function kvAvailable(): boolean {
   return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
+export function getDefaultPageStorageMode(): 'kv' | 'memory' {
+  return kvAvailable() ? 'kv' : 'memory';
 }
 
 function pointerKey(tenantId: string): string {
@@ -105,64 +106,8 @@ export async function writeDefaultPage(plan: PageDoc): Promise<DefaultPageRecord
   };
 }
 
-type SeedBlockDefinition = {
-  key: string;
-  label: string;
-};
-
-const SEED_BLOCKS: SeedBlockDefinition[] = [
-  { key: 'block-one', label: 'block one' },
-  { key: 'block-who', label: 'block who' },
-  { key: 'block-three', label: 'block three' }
-];
-
-function createSeedBlock(def: SeedBlockDefinition, order: number): BlockInstance {
-  return {
-    id: def.key,
-    key: def.key,
-    kind: 'promo-slot',
-    version: '1.6',
-    order,
-    layout: { fullWidth: true },
-    analytics: {
-      viewKey: `default:${def.key}`,
-      surface: 'admin-default-plan',
-      attributes: { label: def.label }
-    },
-    data: {
-      slotId: def.key,
-      advertiser: def.label,
-      disclosure: 'Sponsored',
-      measurement: {},
-      safety: { blockedCategories: [], brandSuitability: 'moderate' as const }
-    }
-  };
-}
-
 export function loadSeedPlan(tenantId: string): PageDoc {
-  const now = new Date().toISOString();
-  return {
-    id: 'default-page',
-    title: 'Default Blocks',
-    path: '/default',
-    tenantId,
-    updatedAt: now,
-    version: '1.6',
-    description: 'Seeded default block ordering for admin preview.',
-    blocks: SEED_BLOCKS.map((def, index) => createSeedBlock(def, index)),
-    meta: {
-      locale: 'en-US',
-      cacheTags: [],
-      flags: {},
-      composerVersion: 'default-plan-seed',
-      generatedAt: now
-    },
-    planCursors: []
-  };
-}
-
-export function expectedSeedBlocks(): ReadonlyArray<SeedBlockDefinition> {
-  return SEED_BLOCKS;
+  return createDefaultDemoPlan({ tenantId });
 }
 
 export function __resetDefaultPageStoreForTests() {

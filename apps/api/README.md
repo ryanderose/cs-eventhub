@@ -52,13 +52,19 @@ assembly, and telemetry span management.
 
 ## Seeding the default plan
 
-Use the seed script to populate the default plan pointer for a tenant before enabling the admin UI or demo host in a shared environment:
+Use the seed script to populate (or rewrite) the default plan pointer for a tenant before enabling the admin UI or demo host in a shared environment:
 
 ```sh
 pnpm --filter @events-hub/api seed:default-plan -- --tenant demo
 ```
 
-Omit the `--tenant` flag to seed the `demo` tenant, or provide a different identifier when preparing staging and production environments. The script reuses the pages-store helpers, so hashes and encoded plans match the API behaviour.
+Key flags:
+
+- `--force` — overwrite the existing pointer and delete the previous `plan:<hash>` entry (useful when upgrading from the placeholder plan).
+- `--dry-run` — log the action that would be taken without mutating KV/memory storage.
+- `--quiet` — suppress JSON logs (errors still bubble to stderr).
+
+The script reports whether KV or the in-memory store handled the write so you can verify persistence before toggling `/blocks` or the demo host to production mode.
 
 ## Environment variables
 
