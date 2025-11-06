@@ -32,8 +32,8 @@ Every shared `@events-hub/*` package must emit JavaScript before the API (or any
 
 The demo host fetches the canonical default plan from the API whenever `NEXT_PUBLIC_PLAN_MODE` equals `beta` (default) or `prod`. The component renders the shared fallback from `@events-hub/default-plan`, then hydrates with the API response once it arrives. The status banner and container `data-*` attributes now make it obvious whether the embed is rendering the seeded blocks, a stored plan, or fallback data.
 
-- Configure `NEXT_PUBLIC_API_BASE` so the host can call `GET /v1/plan/default`.
-- `NEXT_PUBLIC_PLAN_MODE=beta` (default) enables the fetch; `sample`/`legacy` force the fallback for smoke testing.
+- Configure `NEXT_PUBLIC_API_BASE` so the host can call `GET /v1/plan/default`. Preview/production deployments now fall back to the current hostname (replace `demo-host*` with `api*`) when this variable is unset or still points at `localhost`, but explicit envs keep intent clear.
+- `NEXT_PUBLIC_PLAN_MODE=beta` (default) enables the fetch; `sample`/`legacy` force the fallback for smoke testing. `NEXT_PUBLIC_CONFIG_URL` follows the same hostname derivation if it is left blank or references `localhost`.
 - The client retries once (250 ms backoff) before falling back; failures mention "fallback data" and surface the error message when available.
 - Inspect `[demoHost.defaultPlan]` console logs or the container attributes for parity debugging:
   - `data-plan-source`: `api` vs. `fallback`.

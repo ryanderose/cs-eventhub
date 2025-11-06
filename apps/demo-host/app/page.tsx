@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { EmbedConfig, EmbedHandle } from '@events-hub/embed-sdk';
 import type { PageDoc } from '@events-hub/page-schema';
 import { createDefaultDemoPlan } from '@events-hub/default-plan';
-import { getApiBase, getConfigUrl, getEmbedMode, getEmbedSrc, getPlanMode } from '../lib/env';
+import { DEFAULT_TENANT, getApiBase, getConfigUrl, getEmbedMode, getEmbedSrc, getPlanMode } from '../lib/env';
 import { useDefaultPlan } from '../lib/useDefaultPlan';
 
 type EmbedModule = { create(config: EmbedConfig): EmbedHandle };
@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-const DEFAULT_TENANT_ID = 'demo';
+const DEFAULT_TENANT_ID = DEFAULT_TENANT;
 const EMBED_THEME = {
   '--eh-color-bg': '#020617',
   '--eh-color-text': '#e2e8f0'
@@ -101,10 +101,10 @@ function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule, pla
 
 export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const fallbackPlan = useMemo(() => createDefaultDemoPlan(), []);
+  const fallbackPlan = useMemo(() => createDefaultDemoPlan({ tenantId: DEFAULT_TENANT_ID }), []);
   const embedMode = useMemo(() => getEmbedMode(), []);
   const embedSrc = useMemo(() => getEmbedSrc(), []);
-  const configUrl = useMemo(() => getConfigUrl(), []);
+  const configUrl = useMemo(() => getConfigUrl({ tenantId: DEFAULT_TENANT_ID }), []);
   const apiBase = useMemo(() => getApiBase(), []);
   const planMode = useMemo(() => getPlanMode(), []);
   const { plan, planHash, status: planStatus, source: planSource, origin: planOrigin, error: planError } = useDefaultPlan({

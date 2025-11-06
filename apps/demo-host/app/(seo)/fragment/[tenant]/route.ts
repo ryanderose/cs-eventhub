@@ -27,7 +27,7 @@ function normalizeApiBase(base: string): string {
 }
 
 export async function GET(request: Request, { params }: { params: { tenant: string } }) {
-  const apiBase = getApiBase();
+  const apiBase = getApiBase({ host: request.headers.get('host') });
   if (!apiBase) {
     return NextResponse.json({ error: 'NEXT_PUBLIC_API_BASE is not configured.' }, { status: 500 });
   }
