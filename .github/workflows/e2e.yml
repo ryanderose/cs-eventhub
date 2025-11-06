@@ -13,6 +13,7 @@ jobs:
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM:  ${{ vars.TURBO_TEAM }}
+      PLAYWRIGHT_BROWSERS_PATH: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -24,7 +25,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm --version
       - run: pnpm install --frozen-lockfile
-      - run: npx playwright install --with-deps
+      - run: pnpm exec playwright install --with-deps
       - run: pnpm -w build
       - run: pnpm test:e2e:local
       - run: pnpm --filter @events-hub/api test:contract:local
@@ -53,6 +54,7 @@ jobs:
       VERCEL_PROTECTION_BYPASS_SIGNATURE_ADMIN: ${{ secrets.VERCEL_PROTECTION_BYPASS_SIGNATURE_ADMIN }}
       VERCEL_PROTECTION_BYPASS_API: ${{ secrets.VERCEL_PROTECTION_BYPASS_API }}
       VERCEL_PROTECTION_BYPASS_SIGNATURE_API: ${{ secrets.VERCEL_PROTECTION_BYPASS_SIGNATURE_API }}
+      PLAYWRIGHT_BROWSERS_PATH: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -64,7 +66,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm --version
       - run: pnpm install --frozen-lockfile
-      - run: npx playwright install --with-deps
+      - run: pnpm exec playwright install --with-deps
       - name: Fetch demo host preview URL
         id: demo_preview
         env:

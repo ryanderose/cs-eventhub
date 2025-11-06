@@ -1,4 +1,5 @@
 import React from 'react';
+import { headers } from 'next/headers';
 import { ApiError, fetchDefaultPlan } from '../../lib/plan-client';
 import BlocksClient from './BlocksClient';
 
@@ -6,7 +7,8 @@ export const revalidate = 0;
 
 export default async function BlocksPage() {
   try {
-    const result = await fetchDefaultPlan();
+    const host = headers().get('host');
+    const result = await fetchDefaultPlan(undefined, { serverHost: host });
 
     return (
       <main>

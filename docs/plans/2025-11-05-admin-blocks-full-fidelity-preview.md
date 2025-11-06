@@ -103,6 +103,7 @@
 **Notes**
 - Keep drag/drop semantics identical to preserve existing accessibility coverage; new metadata must not break keyboard flows.
 - Use feature flag or environment guard if we need to hide previews until API deploy is live.
+- 2025-11-06: Added host-derived API base fallback in `apps/admin/lib/plan-client.ts` so Vercel preview/prod domains resolve `/v1/plan/default` without extra env vars. Blocks page now passes the incoming host to reuse the same logic.
 
 **Success Criteria**  
 **Automated**

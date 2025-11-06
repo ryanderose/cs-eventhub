@@ -89,9 +89,13 @@ async function waitForUrl(url) {
   throw new Error(`Timed out waiting for ${url}`);
 }
 
-async function runCommand(command, args) {
+async function runCommand(command, args, options) {
   await new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: 'inherit', env: process.env, cwd: repoRoot });
+    const child = spawn(command, args, {
+      stdio: 'inherit',
+      env: options?.env ?? process.env,
+      cwd: repoRoot
+    });
     child.on('exit', (code, signal) => {
       if (signal) {
         reject(new Error(`${command} exited via signal ${signal}`));
@@ -142,6 +146,15 @@ async function cleanup(exitCode) {
 
 async function main() {
   const { servers, testArgs } = scenarios[scenario];
+
+  if (scenario === 'local') {
+    console.log('[run-e2e] Ensuring Playwright browsers are installed...');
+    const browsersEnv = {
+      ...process.env,
+      PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH ?? '0'
+    };
+    await runCommand('pnpm', ['exec', 'playwright', 'install', '--with-deps'], { env: browsersEnv });
+  }
 
   servers.forEach(startServer);
   console.log('[run-e2e] Waiting for dev servers to become ready...');
