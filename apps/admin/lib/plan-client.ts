@@ -4,12 +4,15 @@ const rawClientEndpoint = process.env.NEXT_PUBLIC_DEFAULT_PLAN_ENDPOINT?.trim();
 const CLIENT_PLAN_ENDPOINT =
   rawClientEndpoint && rawClientEndpoint.length ? rawClientEndpoint : '/api/default-plan';
 
-const SERVER_API_BASE =
+const ENV_SERVER_API_BASE =
   process.env.ADMIN_API_BASE ??
   process.env.API_BASE ??
   process.env.PREVIEW_API_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
-  'http://localhost:4000';
+  null;
+
+const DEFAULT_LOCAL_API_BASE = 'http://localhost:4000';
+const DEFAULT_TENANT = process.env.ADMIN_DEFAULT_TENANT ?? 'demo';
 
 const SERVER_BYPASS_TOKEN =
   process.env.ADMIN_API_BYPASS_TOKEN ??
@@ -42,9 +45,51 @@ export class ApiError extends Error {
   }
 }
 
-function buildServerUrl(path: string): string {
-  const url = new URL(path, SERVER_API_BASE);
-  url.searchParams.set('tenantId', 'demo');
+type ServerRequestContext = {
+  serverHost?: string | null;
+  tenantId?: string;
+};
+
+function sanitizeHost(host?: string | null): string | null {
+  if (!host) return null;
+  const trimmed = host.trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/^https?:\/\//i, '');
+}
+
+function deriveApiBaseFromHost(host?: string | null): string | null {
+  const sanitized = sanitizeHost(host);
+  if (!sanitized) return null;
+  const [hostname] = sanitized.split(':');
+  if (!hostname) return null;
+
+  if (/^admin\./i.test(hostname)) {
+    return `https://${hostname.replace(/^admin\./i, 'api.')}`;
+  }
+  if (/^admin-/i.test(hostname)) {
+    return `https://${hostname.replace(/^admin-/i, 'api-')}`;
+  }
+  return null;
+}
+
+function resolveServerApiBase(serverHost?: string | null): string {
+  if (ENV_SERVER_API_BASE) {
+    return ENV_SERVER_API_BASE;
+  }
+  const derivedFromHost = deriveApiBaseFromHost(serverHost);
+  if (derivedFromHost) {
+    return derivedFromHost;
+  }
+  const derivedFromVercel = deriveApiBaseFromHost(process.env.VERCEL_URL);
+  if (derivedFromVercel) {
+    return derivedFromVercel;
+  }
+  return DEFAULT_LOCAL_API_BASE;
+}
+
+function buildServerUrl(path: string, context?: ServerRequestContext): string {
+  const url = new URL(path, resolveServerApiBase(context?.serverHost));
+  url.searchParams.set('tenantId', context?.tenantId ?? DEFAULT_TENANT);
   return url.toString();
 }
 
@@ -78,9 +123,12 @@ function serverHeaders(init?: HeadersInit): Headers {
   return headers;
 }
 
-export async function fetchDefaultPlan(init?: RequestInit): Promise<DefaultPlanResponse> {
+export async function fetchDefaultPlan(
+  init?: RequestInit,
+  context?: ServerRequestContext
+): Promise<DefaultPlanResponse> {
   if (typeof window === 'undefined') {
-    const response = await fetch(buildServerUrl('/v1/plan/default'), {
+    const response = await fetch(buildServerUrl('/v1/plan/default', context), {
       ...init,
       cache: 'no-store',
       headers: serverHeaders(init?.headers)
@@ -99,9 +147,12 @@ export async function fetchDefaultPlan(init?: RequestInit): Promise<DefaultPlanR
   return handleResponse(response);
 }
 
-export async function saveDefaultPlan(plan: PageDoc): Promise<DefaultPlanResponse> {
+export async function saveDefaultPlan(
+  plan: PageDoc,
+  context?: ServerRequestContext
+): Promise<DefaultPlanResponse> {
   if (typeof window === 'undefined') {
-    const response = await fetch(buildServerUrl('/v1/plan/default'), {
+    const response = await fetch(buildServerUrl('/v1/plan/default', context), {
       method: 'PUT',
       cache: 'no-store',
       headers: serverHeaders({ 'content-type': 'application/json' }),
