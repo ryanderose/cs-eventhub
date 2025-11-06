@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { relabelBlock, summarizeBlock } from '@events-hub/default-plan';
 import type { PageDoc } from '@events-hub/page-schema';
 import { ApiError, DefaultPlanResponse, fetchDefaultPlan, saveDefaultPlan } from '../../lib/plan-client';
 
@@ -10,7 +11,7 @@ declare global {
   }
 }
 
-type BlockOrder = Array<{ key: string; title: string; kind: string; id: string; order: number }>;
+type BlockOrder = Array<{ key: string; title: string; summary: string; kind: string; id: string; order: number }>;
 
 type StatusState =
   | { kind: 'idle' }
@@ -30,21 +31,13 @@ function extractBlocks(plan: PageDoc): BlockOrder {
       id: block.id,
       kind: block.kind,
       title: resolveBlockTitle(block),
+      summary: summarizeBlock(block),
       order: block.order
     }));
 }
 
 function resolveBlockTitle(block: PageDoc['blocks'][number]): string {
-  const labelCandidates = [
-    (block as any).data?.title,
-    (block as any).data?.headline,
-    (block as any).data?.name,
-    block.analytics?.attributes?.label
-  ].filter((value): value is string => typeof value === 'string' && value.length > 0);
-  if (labelCandidates.length > 0) {
-    return labelCandidates[0];
-  }
-  return block.key;
+  return relabelBlock(block);
 }
 
 function applyOrderToPlan(plan: PageDoc, order: BlockOrder): PageDoc {
@@ -63,7 +56,9 @@ type ToastState = {
   message: string;
 } | null;
 
-function sendAnalytics(event: { action: string; status: string }) {
+type AnalyticsEvent = { action: string; status: string; blockCount: number };
+
+function sendAnalytics(event: AnalyticsEvent) {
   console.debug('admin-default-plan', event);
   if (typeof window !== 'undefined' && typeof window.plausible === 'function') {
     try {
@@ -81,6 +76,7 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
   const [status, setStatus] = useState<StatusState>({ kind: 'idle' });
   const [toast, setToast] = useState<ToastState>(null);
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [seeded, setSeeded] = useState<boolean>(Boolean(initialPlan.plan.meta?.flags?.seeded));
 
   const canonicalKeyOrder = useMemo(() => order.map((block) => block.key), [order]);
   const savedKeyOrder = useMemo(
@@ -92,6 +88,12 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
     if (canonicalKeyOrder.length !== savedKeyOrder.length) return true;
     return canonicalKeyOrder.some((key, index) => key !== savedKeyOrder[index]);
   }, [canonicalKeyOrder, savedKeyOrder]);
+
+  const lastSavedAt = useMemo(() => {
+    if (!lastSavedPlan.updatedAt) return null;
+    const date = new Date(lastSavedPlan.updatedAt);
+    return Number.isNaN(date.getTime()) ? lastSavedPlan.updatedAt : date.toLocaleString();
+  }, [lastSavedPlan.updatedAt]);
 
   useEffect(() => {
     if (toast?.type === 'success') {
@@ -108,6 +110,7 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
       setPlan(latest.plan);
       setLastSavedPlan(latest.plan);
       setOrder(extractBlocks(latest.plan));
+      setSeeded(Boolean(latest.plan.meta?.flags?.seeded));
     } catch (error) {
       setToast({ type: 'error', message: 'Failed to refresh plan after conflict.' });
     }
@@ -143,7 +146,7 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
       if (updated === current) {
         return current;
       }
-      sendAnalytics({ action: 'reorder', status: 'pending' });
+      sendAnalytics({ action: 'reorder', status: 'pending', blockCount: current.length });
       return updated;
     });
   }
@@ -157,27 +160,28 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
       return;
     }
     setStatus({ kind: 'saving' });
-    sendAnalytics({ action: 'save', status: 'pending' });
+    sendAnalytics({ action: 'save', status: 'pending', blockCount: order.length });
     try {
       const payload = await saveDefaultPlan(applyOrderToPlan(plan, order));
       setPlan(payload.plan);
       setLastSavedPlan(payload.plan);
       setOrder(extractBlocks(payload.plan));
+      setSeeded(Boolean(payload.plan.meta?.flags?.seeded));
       setStatus({ kind: 'idle' });
       setToast({ type: 'success', message: 'Plan updated' });
-      sendAnalytics({ action: 'save', status: 'success' });
+      sendAnalytics({ action: 'save', status: 'success', blockCount: order.length });
     } catch (error) {
       if (error instanceof ApiError && error.status === 412) {
         setStatus({ kind: 'idle' });
         setToast({ type: 'error', message: 'Plan changed remotely. Refreshing…' });
-        sendAnalytics({ action: 'save', status: 'conflict' });
+        sendAnalytics({ action: 'save', status: 'conflict', blockCount: order.length });
         await refreshPlan();
         return;
       }
       const message = error instanceof Error ? error.message : 'Unknown error';
       setStatus({ kind: 'error', message });
       setToast({ type: 'error', message: 'Failed to save plan' });
-      sendAnalytics({ action: 'save', status: 'error' });
+      sendAnalytics({ action: 'save', status: 'error', blockCount: order.length });
     }
   }
 
@@ -190,7 +194,7 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
         return current;
       }
       const updated = reorderByIndex(current, index, nextIndex);
-      sendAnalytics({ action: 'reorder', status: 'pending' });
+      sendAnalytics({ action: 'reorder', status: 'pending', blockCount: current.length });
       return updated;
     });
   }
@@ -207,6 +211,15 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
       <p className="instructions">
         Drag items to reorder. Keyboard: focus a row, press space to lift, use arrow keys to move, and press space again to drop.
       </p>
+      {seeded ? (
+        <p className="callout info seeded-banner" role="status">
+          Using the seeded default block order. Save a change to persist this plan to storage.
+        </p>
+      ) : (
+        <p className="muted">
+          Stored default plan{lastSavedAt ? ` · last updated ${lastSavedAt}` : ''}.
+        </p>
+      )}
       <ol
         className="block-list"
         onDragOver={(event) => event.preventDefault()}
@@ -237,10 +250,11 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
           onClick={() => {
             setOrder(extractBlocks(lastSavedPlan));
             setPlan(lastSavedPlan);
+            setSeeded(Boolean(lastSavedPlan.meta?.flags?.seeded));
             setDraggingKey(null);
             setToast(null);
             setStatus({ kind: 'idle' });
-            sendAnalytics({ action: 'reset', status: 'success' });
+            sendAnalytics({ action: 'reset', status: 'success', blockCount: lastSavedPlan.blocks.length });
           }}
           disabled={!hasChanges || status.kind === 'saving'}
         >
@@ -276,7 +290,7 @@ function SortableBlockItem({
       tabIndex={0}
       data-block-key={block.key}
       aria-roledescription="sortable"
-      aria-label={`${block.title} (${block.kind})`}
+      aria-label={`${block.title} (${block.kind}). ${block.summary}`}
       aria-grabbed={dragging}
       draggable
       onDragStart={(event) => {
@@ -304,7 +318,11 @@ function SortableBlockItem({
         <div>
           <strong>{block.title}</strong>
           <p className="muted">
-            {block.kind} · {block.id}
+            {block.summary}
+            <br />
+            <span className="block-item__meta">
+              {block.kind} · {block.id}
+            </span>
           </p>
         </div>
       </div>

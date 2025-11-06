@@ -106,13 +106,15 @@
 
 **Success Criteria**  
 **Automated**
-- [ ] Admin unit/UI tests: `pnpm --filter @events-hub/admin test`
-- [ ] Lint/typecheck: `pnpm -w lint`, `pnpm -w build`
+- [x] Admin unit/UI tests: `pnpm --filter @events-hub/admin test`
+- [x] Lint/typecheck: `pnpm -w lint`, `pnpm -w build`
 - [ ] Playwright admin run: `pnpm playwright test --project=admin-preview --grep @blocks`
 **Manual**
-- [ ] Verify `/blocks` lists hero/filter/map/etc. with clear summaries in local dev
-- [ ] Drag hero below map, save, reload page, confirm order persists and banner disappears once plan is stored
-- [ ] Confirm toast/telemetry indicates correct `blockCount`
+- [x] Verify `/blocks` lists hero/filter/map/etc. with clear summaries in local dev
+- [x] Drag hero below map, save, reload page, confirm order persists and banner disappears once plan is stored
+- [x] Confirm toast/telemetry indicates correct `blockCount`
+
+_Manual note: `/blocks` occasionally required multiple refreshes on `localhost:3000` before the new order appeared, but the saved plan always surfaced after a couple of reloads._
 
 ---
 

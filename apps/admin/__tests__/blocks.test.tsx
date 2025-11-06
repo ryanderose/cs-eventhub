@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createDefaultDemoPlan } from '@events-hub/default-plan';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { PageDoc } from '@events-hub/page-schema';
 import BlocksClient from '../app/blocks/BlocksClient';
@@ -32,78 +33,49 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  (window as any).plausible = vi.fn();
 });
 
 function createPlan(overrides?: Partial<PageDoc>): PageDoc {
-  const now = new Date().toISOString();
+  const base = createDefaultDemoPlan({ planHash: overrides?.meta?.planHash ?? 'hash-1' });
   return {
-    id: 'default-page',
-    title: 'Default Blocks',
-    path: '/default',
-    tenantId: 'demo',
-    updatedAt: now,
-    version: '1.6',
-    description: 'Seed plan',
-    blocks: [
-      createBlock('block-one', 'Block One', 0),
-      createBlock('block-who', 'Block Who', 1),
-      createBlock('block-three', 'Block Three', 2)
-    ],
+    ...base,
+    ...overrides,
+    blocks: overrides?.blocks ?? base.blocks,
     meta: {
-      planHash: 'hash-1',
-      cacheTags: [],
-      flags: {},
-      locale: 'en-US',
-      generatedAt: now,
-      composerVersion: 'default'
-    },
-    planCursors: [],
-    ...overrides
-  };
-}
-
-function createBlock(key: string, title: string, order: number) {
-  return {
-    id: key,
-    key,
-    kind: 'promo-slot',
-    version: '1.6' as const,
-    order,
-    layout: { fullWidth: true },
-    analytics: {
-      viewKey: `default:${key}`,
-      surface: 'default-plan',
-      attributes: { label: title }
-    },
-    data: {
-      slotId: key,
-      advertiser: title,
-      disclosure: 'Sponsored',
-      measurement: {},
-      safety: { blockedCategories: [], brandSuitability: 'moderate' as const }
+      ...base.meta,
+      ...(overrides?.meta ?? {})
     }
   };
 }
 
+function reorderBlocks(blocks: PageDoc['blocks'], fromKey: string, targetIndex: number) {
+  const sorted = [...blocks].sort((a, b) => a.order - b.order).map((block) => ({ ...block }));
+  const fromIndex = sorted.findIndex((block) => block.key === fromKey);
+  if (fromIndex === -1) {
+    return sorted;
+  }
+  const [moved] = sorted.splice(fromIndex, 1);
+  sorted.splice(targetIndex, 0, moved);
+  return sorted.map((block, index) => ({ ...block, order: index }));
+}
+
 describe('BlocksClient', () => {
-  it('renders the block list and disables save until changes occur', () => {
+  it('renders summaries for the seeded plan and disables save until changes occur', () => {
     const plan = createPlan();
     render(<BlocksClient initialPlan={{ plan, encodedPlan: 'encoded', planHash: 'hash-1', updatedAt: plan.updatedAt }} />);
 
-    expect(screen.getByText('Block One')).toBeInTheDocument();
-    const saveButton = screen.getByRole('button', { name: 'Save' });
-    expect(saveButton).toBeDisabled();
+    expect(screen.getByText(/Using the seeded default block order/i)).toBeInTheDocument();
+    expect(screen.getByText(/Slides: 1/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
   it('reorders blocks via control buttons and persists changes', async () => {
     const plan = createPlan();
     const updatedPlan = createPlan({
-      blocks: [
-        createBlock('block-who', 'Block Who', 0),
-        createBlock('block-one', 'Block One', 1),
-        createBlock('block-three', 'Block Three', 2)
-      ],
-      meta: { ...plan.meta, planHash: 'hash-2' }
+      blocks: reorderBlocks(plan.blocks, 'hero', 2),
+      meta: { ...plan.meta, planHash: 'hash-2', flags: { ...plan.meta.flags, seeded: false } },
+      updatedAt: '2025-03-01T00:00:00.000Z'
     });
 
     saveDefaultPlan.mockResolvedValue({
@@ -115,7 +87,7 @@ describe('BlocksClient', () => {
 
     render(<BlocksClient initialPlan={{ plan, encodedPlan: 'encoded', planHash: 'hash-1', updatedAt: plan.updatedAt }} />);
 
-    fireEvent.click(screen.getAllByRole('button', { name: /move block one down/i })[0]);
+    fireEvent.click(screen.getByRole('button', { name: /move weekend highlights down/i }));
 
     const saveButton = screen.getByRole('button', { name: 'Save' });
     expect(saveButton).not.toBeDisabled();
@@ -128,23 +100,21 @@ describe('BlocksClient', () => {
     });
 
     const payloadPlan = saveDefaultPlan.mock.calls[0][0] as PageDoc;
-    const orderLookup = Object.fromEntries(payloadPlan.blocks.map((block) => [block.key, block.order]));
-    expect(orderLookup['block-one']).toBe(1);
-    expect(orderLookup['block-who']).toBe(0);
-    expect(orderLookup['block-three']).toBe(2);
-
+    const heroOrder = payloadPlan.blocks.find((block) => block.key === 'hero')?.order;
+    expect(heroOrder).toBe(2);
     expect(screen.getByText('Plan updated')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText(/Using the seeded default block order/i)).not.toBeInTheDocument();
+    });
+    const plausibleCalls = (window as any).plausible.mock.calls;
+    expect(plausibleCalls.some(([, args]: any) => args?.props?.blockCount === plan.blocks.length)).toBe(true);
   });
 
   it('handles optimistic concurrency conflicts by refetching', async () => {
     const plan = createPlan();
     const refreshedPlan = createPlan({
-      blocks: [
-        createBlock('block-three', 'Block Three', 0),
-        createBlock('block-one', 'Block One', 1),
-        createBlock('block-who', 'Block Who', 2)
-      ],
-      meta: { ...plan.meta, planHash: 'hash-3' }
+      blocks: reorderBlocks(plan.blocks, 'map', 0),
+      meta: { ...plan.meta, planHash: 'hash-3', flags: { ...plan.meta.flags, seeded: false } }
     });
 
     saveDefaultPlan.mockRejectedValue(new ApiError(412, 'Precondition Failed', { planHash: 'hash-2' }));
@@ -157,7 +127,7 @@ describe('BlocksClient', () => {
 
     render(<BlocksClient initialPlan={{ plan, encodedPlan: 'encoded', planHash: 'hash-1', updatedAt: plan.updatedAt }} />);
 
-    fireEvent.click(screen.getAllByRole('button', { name: /move block one down/i })[0]);
+    fireEvent.click(screen.getByRole('button', { name: /move weekend highlights down/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {

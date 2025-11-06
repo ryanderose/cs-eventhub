@@ -141,12 +141,14 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
       span.setAttribute('seeded', seeded);
       span.setAttribute('plan.hash', record.planHash);
       span.setAttribute('block.count', record.plan.blocks.length);
+      const blockKeys = record.plan.blocks.map((block) => block.key);
       console.info('[defaultPlan.fetch] success', {
         tenantId,
         planHash: record.planHash,
         seeded,
         storageMode,
-        blockCount: record.plan.blocks.length
+        blockCount: record.plan.blocks.length,
+        blockKeys
       });
       respond(res, 200, {
         plan: record.plan,
@@ -237,7 +239,11 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
         meta: {
           ...baselinePlan.meta,
           generatedAt: now,
-          planHash: incomingPlan.meta.planHash
+          planHash: incomingPlan.meta.planHash,
+          flags: {
+            ...baselinePlan.meta?.flags,
+            seeded: false
+          }
         },
         blocks: reorderedBlocks
       };
@@ -245,12 +251,14 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
       const record = await writeDefaultPage(updatedPlan);
       span.setAttribute('plan.hash', record.planHash);
       span.setAttribute('block.count', record.plan.blocks.length);
+      const blockKeys = record.plan.blocks.map((block) => block.key);
       console.info('[defaultPlan.update] success', {
         tenantId,
         planHash: record.planHash,
         source: 'admin',
         storageMode,
-        blockCount: record.plan.blocks.length
+        blockCount: record.plan.blocks.length,
+        blockKeys
       });
 
       respond(res, 200, {

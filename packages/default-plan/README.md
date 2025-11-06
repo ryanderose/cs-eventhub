@@ -31,6 +31,7 @@ createDefaultDemoPlan({
 - `tenantId`, `pageId`, `title`, `path`, and `description` default to the demo tenant metadata.
 - `planHash` defaults to `default-plan-seed` so the API can detect when the canonical seed is in use.
 - `now` accepts a `Date` or ISO string; when omitted the module uses `DEFAULT_PLAN_TIMESTAMP` so hashes stay deterministic.
+- The returned plan marks `meta.flags.seeded = true` so downstream clients can show “seeded/default” banners until a custom order is persisted.
 
 ## Block roster
 

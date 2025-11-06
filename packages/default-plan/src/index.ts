@@ -356,7 +356,7 @@ export function createDefaultDemoPlan(options?: CreateDefaultDemoPlanOptions): P
       generatedAt: nowIso,
       locale: 'en-US',
       cacheTags: [],
-      flags: {}
+      flags: { seeded: true }
     },
     planCursors: []
   };

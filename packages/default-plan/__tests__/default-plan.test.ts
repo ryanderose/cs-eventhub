@@ -17,6 +17,7 @@ describe('default plan module', () => {
     expect(plan.meta?.generatedAt).toBe(DEFAULT_PLAN_TIMESTAMP);
     expect(plan.blocks).toHaveLength(DEFAULT_BLOCK_TEMPLATES.length);
     expect(plan.meta?.planHash).toBe('default-plan-seed');
+    expect(plan.meta?.flags?.seeded).toBe(true);
 
     plan.blocks.forEach((block, index) => {
       const template = DEFAULT_BLOCK_TEMPLATES[index];
