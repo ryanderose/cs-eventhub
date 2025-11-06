@@ -24,7 +24,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm --version
       - run: pnpm install --frozen-lockfile
-      - run: npx playwright install --with-deps
+      - run: pnpm exec playwright install --with-deps
       - run: pnpm -w build
       - run: pnpm test:e2e:local
       - run: pnpm --filter @events-hub/api test:contract:local
@@ -64,7 +64,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm --version
       - run: pnpm install --frozen-lockfile
-      - run: npx playwright install --with-deps
+      - run: pnpm exec playwright install --with-deps
       - name: Fetch demo host preview URL
         id: demo_preview
         env:
