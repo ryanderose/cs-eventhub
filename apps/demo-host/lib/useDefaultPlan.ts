@@ -16,6 +16,7 @@ type UseDefaultPlanOptions = {
 };
 
 type DefaultPlanStatus = 'loading' | 'ready' | 'fallback' | 'disabled';
+export type DefaultPlanOrigin = 'fallback' | 'seeded' | 'stored';
 
 type UseDefaultPlanState = {
   plan: PageDoc;
@@ -23,6 +24,7 @@ type UseDefaultPlanState = {
   encodedPlan?: string;
   status: DefaultPlanStatus;
   source: 'api' | 'fallback';
+  origin: DefaultPlanOrigin;
   error?: string;
 };
 
@@ -74,7 +76,8 @@ export function useDefaultPlan({ apiBase, tenantId, planMode, fallbackPlan }: Us
     planHash: fallbackHash,
     encodedPlan: undefined,
     status: DISABLED_PLAN_MODES.has(planMode) ? 'disabled' : 'loading',
-    source: 'fallback'
+    source: 'fallback',
+    origin: 'fallback'
   });
   const abortRef = useRef<AbortController | null>(null);
 
@@ -88,6 +91,7 @@ export function useDefaultPlan({ apiBase, tenantId, planMode, fallbackPlan }: Us
         encodedPlan: undefined,
         status: 'disabled',
         source: 'fallback',
+        origin: 'fallback',
         error: undefined
       });
       return;
@@ -101,6 +105,7 @@ export function useDefaultPlan({ apiBase, tenantId, planMode, fallbackPlan }: Us
         encodedPlan: undefined,
         status: 'fallback',
         source: 'fallback',
+        origin: 'fallback',
         error: 'API base not configured'
       });
       return;
@@ -154,12 +159,14 @@ export function useDefaultPlan({ apiBase, tenantId, planMode, fallbackPlan }: Us
             return;
           }
 
+          const seeded = Boolean(payload.plan.meta?.flags?.seeded);
           setState({
             plan: payload.plan,
             encodedPlan: payload.encodedPlan,
             planHash: payload.planHash,
             status: 'ready',
             source: 'api',
+            origin: seeded ? 'seeded' : 'stored',
             error: undefined
           });
           return;
@@ -179,6 +186,7 @@ export function useDefaultPlan({ apiBase, tenantId, planMode, fallbackPlan }: Us
               encodedPlan: undefined,
               status: 'fallback',
               source: 'fallback',
+              origin: 'fallback',
               error: message
             });
           }

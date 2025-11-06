@@ -188,8 +188,11 @@ describe('Next.js embed host page', () => {
         plan: expect.objectContaining({ meta: expect.objectContaining({ planHash: 'hash-api' }) })
       });
     });
-    expect(screen.getByRole('status')).toHaveTextContent('Embed ready (default plan loaded).');
+    expect(screen.getByRole('status')).toHaveTextContent('Embed ready (stored default plan).');
     expect(container.dataset.planSource).toBe('api');
+    expect(container.dataset.planOrigin).toBe('stored');
+    expect(container.dataset.planHash).toBe('hash-api');
+    expect(container.dataset.planKeys?.split(',')).toEqual(['block-one', 'block-who', 'block-three']);
   });
 
   it('loads the external script when NEXT_PUBLIC_EMBED_MODE=external', async () => {
@@ -255,8 +258,10 @@ describe('Next.js embed host page', () => {
 
     const statusMessage = screen.getByRole('status').textContent ?? '';
     expect(statusMessage).toContain('Unable to load default plan');
+    expect(statusMessage).toContain('fallback data');
 
     const container = document.querySelector('[data-embed-container]') as HTMLDivElement;
     expect(container.dataset.planSource).toBe('fallback');
+    expect(container.dataset.planOrigin).toBe('fallback');
   });
 });

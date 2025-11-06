@@ -134,9 +134,9 @@ _Manual note: `/blocks` occasionally required multiple refreshes on `localhost:3
 
 **Success Criteria**  
 **Automated**
-- [ ] Demo host unit tests: `pnpm --filter @events-hub/demo-host test`
-- [ ] E2E parity tests: `pnpm test:parity`
-- [ ] Workspace checks: `pnpm -w build`, `pnpm -w lint`, `pnpm check:bundles`
+- [x] Demo host unit tests: `pnpm --filter @events-hub/demo-host test`
+- [x] E2E parity tests: `pnpm test:parity`
+- [x] Workspace checks: `pnpm -w build`, `pnpm -w lint`, `pnpm check:bundles`
 **Manual**
 - [ ] In preview deployment, reorder blocks via `/blocks`, then confirm demo host embed reflects change after refresh
 - [ ] Toggle `NEXT_PUBLIC_PLAN_MODE=beta` locally to ensure fallback copy indicates seed usage

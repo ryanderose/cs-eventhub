@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { EmbedConfig, EmbedHandle } from '@events-hub/embed-sdk';
 import type { PageDoc } from '@events-hub/page-schema';
+import { createDefaultDemoPlan } from '@events-hub/default-plan';
 import { getApiBase, getConfigUrl, getEmbedMode, getEmbedSrc, getPlanMode } from '../lib/env';
-import { createSamplePlan } from '../lib/samplePlan';
 import { useDefaultPlan } from '../lib/useDefaultPlan';
 
 type EmbedModule = { create(config: EmbedConfig): EmbedHandle };
@@ -101,13 +101,13 @@ function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule, pla
 
 export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const fallbackPlan = useMemo(() => createSamplePlan(), []);
+  const fallbackPlan = useMemo(() => createDefaultDemoPlan(), []);
   const embedMode = useMemo(() => getEmbedMode(), []);
   const embedSrc = useMemo(() => getEmbedSrc(), []);
   const configUrl = useMemo(() => getConfigUrl(), []);
   const apiBase = useMemo(() => getApiBase(), []);
   const planMode = useMemo(() => getPlanMode(), []);
-  const { plan, planHash, status: planStatus, source: planSource, error: planError } = useDefaultPlan({
+  const { plan, planHash, status: planStatus, source: planSource, origin: planOrigin, error: planError } = useDefaultPlan({
     apiBase,
     tenantId: DEFAULT_TENANT_ID,
     planMode,
@@ -118,6 +118,20 @@ export default function Page() {
   const handleRef = useRef<EmbedHandle | null>(null);
   const currentHashRef = useRef<string | null>(null);
   const initialPlanRef = useRef<PageDoc | null>(null);
+
+  const orderedPlanKeys = useMemo(() => {
+    return [...plan.blocks].sort((a, b) => a.order - b.order).map((block) => block.key);
+  }, [plan]);
+
+  useEffect(() => {
+    if (!planHash) return;
+    console.info('[demoHost.defaultPlan]', {
+      planHash,
+      planOrigin,
+      planSource,
+      planStatus
+    });
+  }, [planHash, planOrigin, planSource, planStatus]);
 
   if (!initialPlanRef.current) {
     initialPlanRef.current = plan;
@@ -191,16 +205,31 @@ export default function Page() {
     }
     if (planStatus === 'fallback') {
       const detail = planError ? ` — ${planError}` : '';
-      return `Unable to load default plan${detail}. Showing sample data.`;
+      return `Unable to load default plan${detail}. Showing fallback data.`;
     }
     if (planStatus === 'disabled') {
       return 'Sample plan mode enabled (API fetch disabled).';
     }
     if (embedStatus === 'ready') {
-      return planSource === 'api' ? 'Embed ready (default plan loaded).' : 'Embed ready (sample data).';
+      if (planSource === 'api') {
+        const descriptor = planOrigin === 'seeded' ? 'seeded default plan' : 'stored default plan';
+        return `Embed ready (${descriptor}).`;
+      }
+      return 'Embed ready (fallback data).';
     }
     return 'Loading embed…';
-  }, [embedStatus, embedError, planStatus, planSource, planError]);
+  }, [embedStatus, embedError, planStatus, planSource, planOrigin, planError]);
+
+  const planOriginLabel = useMemo(() => {
+    switch (planOrigin) {
+      case 'seeded':
+        return 'Seeded default plan (save a change to persist)';
+      case 'stored':
+        return 'Stored default plan (persisted order)';
+      default:
+        return 'Fallback sample data';
+    }
+  }, [planOrigin]);
 
   return (
     <main>
@@ -217,6 +246,9 @@ export default function Page() {
         data-plan-mode={planMode}
         data-plan-status={planStatus}
         data-plan-source={planSource}
+        data-plan-origin={planOrigin}
+        data-plan-hash={planHash ?? ''}
+        data-plan-keys={orderedPlanKeys.join(',')}
       />
       <p className="status" role="status" aria-live="polite">
         {statusMessage}
@@ -246,6 +278,8 @@ export default function Page() {
         <dd>{planMode}</dd>
         <dt>Plan status</dt>
         <dd>{planStatus}</dd>
+        <dt>Plan origin</dt>
+        <dd>{planOriginLabel}</dd>
         <dt>Plan hash</dt>
         <dd>{planHash}</dd>
       </dl>

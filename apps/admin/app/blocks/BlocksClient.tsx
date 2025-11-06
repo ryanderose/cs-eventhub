@@ -56,13 +56,21 @@ type ToastState = {
   message: string;
 } | null;
 
-type AnalyticsEvent = { action: string; status: string; blockCount: number };
+type AnalyticsEvent = { action: string; status: string; blockCount: number; blockKeys?: string[] };
+
+function toBlockKeys(list: BlockOrder): string[] {
+  return list.map((item) => item.key);
+}
 
 function sendAnalytics(event: AnalyticsEvent) {
   console.debug('admin-default-plan', event);
+  const props = {
+    ...event,
+    blockKeys: event.blockKeys?.join(',')
+  };
   if (typeof window !== 'undefined' && typeof window.plausible === 'function') {
     try {
-      window.plausible('admin-default-plan', { props: event });
+      window.plausible('admin-default-plan', { props });
     } catch {
       // ignore analytics failures
     }
@@ -146,7 +154,7 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
       if (updated === current) {
         return current;
       }
-      sendAnalytics({ action: 'reorder', status: 'pending', blockCount: current.length });
+      sendAnalytics({ action: 'reorder', status: 'pending', blockCount: current.length, blockKeys: toBlockKeys(updated) });
       return updated;
     });
   }
@@ -160,28 +168,29 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
       return;
     }
     setStatus({ kind: 'saving' });
-    sendAnalytics({ action: 'save', status: 'pending', blockCount: order.length });
+    sendAnalytics({ action: 'save', status: 'pending', blockCount: order.length, blockKeys: toBlockKeys(order) });
     try {
       const payload = await saveDefaultPlan(applyOrderToPlan(plan, order));
+      const nextOrder = extractBlocks(payload.plan);
       setPlan(payload.plan);
       setLastSavedPlan(payload.plan);
-      setOrder(extractBlocks(payload.plan));
+      setOrder(nextOrder);
       setSeeded(Boolean(payload.plan.meta?.flags?.seeded));
       setStatus({ kind: 'idle' });
       setToast({ type: 'success', message: 'Plan updated' });
-      sendAnalytics({ action: 'save', status: 'success', blockCount: order.length });
+      sendAnalytics({ action: 'save', status: 'success', blockCount: nextOrder.length, blockKeys: toBlockKeys(nextOrder) });
     } catch (error) {
       if (error instanceof ApiError && error.status === 412) {
         setStatus({ kind: 'idle' });
         setToast({ type: 'error', message: 'Plan changed remotely. Refreshing…' });
-        sendAnalytics({ action: 'save', status: 'conflict', blockCount: order.length });
+        sendAnalytics({ action: 'save', status: 'conflict', blockCount: order.length, blockKeys: toBlockKeys(order) });
         await refreshPlan();
         return;
       }
       const message = error instanceof Error ? error.message : 'Unknown error';
       setStatus({ kind: 'error', message });
       setToast({ type: 'error', message: 'Failed to save plan' });
-      sendAnalytics({ action: 'save', status: 'error', blockCount: order.length });
+      sendAnalytics({ action: 'save', status: 'error', blockCount: order.length, blockKeys: toBlockKeys(order) });
     }
   }
 
@@ -194,7 +203,7 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
         return current;
       }
       const updated = reorderByIndex(current, index, nextIndex);
-      sendAnalytics({ action: 'reorder', status: 'pending', blockCount: current.length });
+      sendAnalytics({ action: 'reorder', status: 'pending', blockCount: current.length, blockKeys: toBlockKeys(updated) });
       return updated;
     });
   }
@@ -248,13 +257,19 @@ export default function BlocksClient({ initialPlan }: BlocksClientProps) {
         <button
           type="button"
           onClick={() => {
-            setOrder(extractBlocks(lastSavedPlan));
+            const resetOrder = extractBlocks(lastSavedPlan);
+            setOrder(resetOrder);
             setPlan(lastSavedPlan);
             setSeeded(Boolean(lastSavedPlan.meta?.flags?.seeded));
             setDraggingKey(null);
             setToast(null);
             setStatus({ kind: 'idle' });
-            sendAnalytics({ action: 'reset', status: 'success', blockCount: lastSavedPlan.blocks.length });
+            sendAnalytics({
+              action: 'reset',
+              status: 'success',
+              blockCount: lastSavedPlan.blocks.length,
+              blockKeys: toBlockKeys(resetOrder)
+            });
           }}
           disabled={!hasChanges || status.kind === 'saving'}
         >

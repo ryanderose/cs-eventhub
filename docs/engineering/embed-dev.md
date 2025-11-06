@@ -30,19 +30,29 @@ Every shared `@events-hub/*` package must emit JavaScript before the API (or any
 
 ## Default plan hydration
 
-The demo host now fetches the default block plan from the API when `NEXT_PUBLIC_PLAN_MODE` is set to `beta` or `prod`. On initial load it renders the embedded sample plan, then hydrates with the API response once available. The status panel in the host shows whether the current view is using the API or fallback data.
+The demo host fetches the canonical default plan from the API whenever `NEXT_PUBLIC_PLAN_MODE` equals `beta` (default) or `prod`. The component renders the shared fallback from `@events-hub/default-plan`, then hydrates with the API response once it arrives. The status banner and container `data-*` attributes now make it obvious whether the embed is rendering the seeded blocks, a stored plan, or fallback data.
 
 - Configure `NEXT_PUBLIC_API_BASE` so the host can call `GET /v1/plan/default`.
-- Set `NEXT_PUBLIC_PLAN_MODE=beta` (default) to enable the fetch, or `NEXT_PUBLIC_PLAN_MODE=sample`/`legacy` to force the inline sample plan.
-- The client retries once (250 ms backoff) before falling back to the sample plan; the status panel reflects the failure.
+- `NEXT_PUBLIC_PLAN_MODE=beta` (default) enables the fetch; `sample`/`legacy` force the fallback for smoke testing.
+- The client retries once (250 ms backoff) before falling back; failures mention "fallback data" and surface the error message when available.
+- Inspect `[demoHost.defaultPlan]` console logs or the container attributes for parity debugging:
+  - `data-plan-source`: `api` vs. `fallback`.
+  - `data-plan-origin`: `seeded`, `stored`, or `fallback`.
+  - `data-plan-hash` / `data-plan-keys`: persisted hash plus the ordered block keys currently rendered.
 
-Seed the default plan pointer before switching to production mode:
+### Reseeding and parity checks
 
-```sh
-pnpm --filter @events-hub/api seed:default-plan -- --tenant demo
-```
+1. Seed (or rewrite) the default plan pointer before switching to production mode:
 
-Add `--force` when migrating an environment that already has the placeholder plan so the script rewrites the pointer and prunes the stale `plan:<hash>` entry. Use `--dry-run` to verify the action (and storage mode: KV vs. in-memory) without mutating state.
+   ```sh
+   pnpm --filter @events-hub/api seed:default-plan -- --tenant demo [--force]
+   ```
+
+   `--force` clears the prior `plan:<hash>` entry; `--dry-run` reports the action without mutating KV/memory storage.
+
+2. Reorder via `/blocks`, save, and confirm the seeded banner disappears. Admin analytics events now include `blockKeys` so Plausible dashboards show exactly which blocks were affected.
+3. Refresh the demo host (localhost:3000) and wait for the banner to read `Embed ready (stored default plan).` Verify that the plan hash and `data-plan-keys` align with the API response.
+4. For automated coverage run `pnpm playwright test --project=demo-hosts-local --grep @default-plan` (see `playwright/projects/demo/default-plan.spec.ts`). The spec resets the plan via the API, applies a reorder, and asserts that the host reports the updated block order.
 
 ## Beta vs production manifests
 
