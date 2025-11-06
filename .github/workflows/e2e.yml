@@ -13,6 +13,7 @@ jobs:
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM:  ${{ vars.TURBO_TEAM }}
+      PLAYWRIGHT_BROWSERS_PATH: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -53,6 +54,7 @@ jobs:
       VERCEL_PROTECTION_BYPASS_SIGNATURE_ADMIN: ${{ secrets.VERCEL_PROTECTION_BYPASS_SIGNATURE_ADMIN }}
       VERCEL_PROTECTION_BYPASS_API: ${{ secrets.VERCEL_PROTECTION_BYPASS_API }}
       VERCEL_PROTECTION_BYPASS_SIGNATURE_API: ${{ secrets.VERCEL_PROTECTION_BYPASS_SIGNATURE_API }}
+      PLAYWRIGHT_BROWSERS_PATH: '0'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
