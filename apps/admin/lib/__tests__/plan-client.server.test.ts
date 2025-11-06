@@ -14,7 +14,6 @@ describe('plan-client server fallbacks', () => {
     if (originalFetch) {
       global.fetch = originalFetch;
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete (global as Partial<typeof global>).fetch;
     }
   });
@@ -36,8 +35,6 @@ describe('plan-client server fallbacks', () => {
     (global.fetch as unknown as Mock).mockResolvedValue(mockResponse);
 
     const previousWindow = (global as typeof globalThis & { window?: unknown }).window;
-    // Force the server execution path for the duration of this assertion.
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete (global as typeof globalThis & { window?: unknown }).window;
 
     try {
