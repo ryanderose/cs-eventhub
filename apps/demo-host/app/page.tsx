@@ -109,9 +109,14 @@ export default function Page() {
   const embedSrc = useMemo(() => getEmbedSrc(), []);
   const configUrl = useMemo(() => getConfigUrl({ tenantId: DEFAULT_TENANT_ID, host }), [host]);
   const apiBase = useMemo(() => getApiBase({ host }), [host]);
+  const planEndpoint = useMemo(
+    () => process.env.NEXT_PUBLIC_DEFAULT_PLAN_ENDPOINT?.trim() ?? '/api/default-plan',
+    []
+  );
   const planMode = useMemo(() => getPlanMode(), []);
   const { plan, planHash, status: planStatus, source: planSource, origin: planOrigin, error: planError } = useDefaultPlan({
     apiBase,
+    planEndpoint,
     tenantId: DEFAULT_TENANT_ID,
     planMode,
     fallbackPlan
@@ -262,6 +267,7 @@ export default function Page() {
         data-plan-origin={planOrigin}
         data-plan-hash={planHash ?? ''}
         data-plan-keys={orderedPlanKeys.join(',')}
+        data-plan-endpoint={planEndpoint}
       />
       <p className="status" role="status" aria-live="polite">
         {statusMessage}

@@ -10,6 +10,7 @@ export type DefaultPlanResponse = {
 
 type UseDefaultPlanOptions = {
   apiBase?: string;
+  planEndpoint?: string;
   tenantId: string;
   planMode: string;
   fallbackPlan: PageDoc;
@@ -46,7 +47,30 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function buildPlanUrl(apiBase: string, tenantId: string): string {
+function isAbsoluteUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
+function buildPlanUrl(apiBase: string | undefined, tenantId: string, planEndpoint?: string): string {
+  const trimmedEndpoint = planEndpoint?.trim();
+  if (trimmedEndpoint) {
+    if (isAbsoluteUrl(trimmedEndpoint)) {
+      const url = new URL(trimmedEndpoint);
+      url.searchParams.set('tenantId', tenantId);
+      return url.toString();
+    }
+    if (typeof window === 'undefined' || !window.location?.origin) {
+      throw new FetchPlanError(0, 'Plan endpoint requires a browser origin.');
+    }
+    const url = new URL(trimmedEndpoint.startsWith('/') ? trimmedEndpoint : `/${trimmedEndpoint}`, window.location.origin);
+    url.searchParams.set('tenantId', tenantId);
+    return url.toString();
+  }
+
+  if (!apiBase) {
+    throw new FetchPlanError(0, 'API base not configured');
+  }
+
   const url = new URL('/v1/plan/default', apiBase);
   url.searchParams.set('tenantId', tenantId);
   return url.toString();
@@ -69,7 +93,13 @@ function normalizePlanResponse(payload: DefaultPlanResponse): DefaultPlanRespons
   };
 }
 
-export function useDefaultPlan({ apiBase, tenantId, planMode, fallbackPlan }: UseDefaultPlanOptions): UseDefaultPlanState {
+export function useDefaultPlan({
+  apiBase,
+  planEndpoint,
+  tenantId,
+  planMode,
+  fallbackPlan
+}: UseDefaultPlanOptions): UseDefaultPlanState {
   const fallbackHash = useMemo(() => fallbackPlan.meta?.planHash ?? 'sample-plan', [fallbackPlan]);
   const [state, setState] = useState<UseDefaultPlanState>({
     plan: fallbackPlan,
@@ -98,7 +128,8 @@ export function useDefaultPlan({ apiBase, tenantId, planMode, fallbackPlan }: Us
     }
 
     const resolvedApiBase = apiBase?.trim();
-    if (!resolvedApiBase) {
+    const resolvedPlanEndpoint = planEndpoint?.trim();
+    if (!resolvedApiBase && !resolvedPlanEndpoint) {
       setState({
         plan: fallbackPlan,
         planHash: fallbackHash,
@@ -124,7 +155,23 @@ export function useDefaultPlan({ apiBase, tenantId, planMode, fallbackPlan }: Us
         error: undefined
       }));
 
-      const url = buildPlanUrl(baseApiUrl, tenantId);
+      let url: string;
+      try {
+        url = buildPlanUrl(baseApiUrl, tenantId, resolvedPlanEndpoint);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : typeof error === 'string' ? error : 'API base not configured';
+        setState({
+          plan: fallbackPlan,
+          planHash: fallbackHash,
+          encodedPlan: undefined,
+          status: 'fallback',
+          source: 'fallback',
+          origin: 'fallback',
+          error: message
+        });
+        return;
+      }
       let staleRetries = 0;
 
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
@@ -200,7 +247,7 @@ export function useDefaultPlan({ apiBase, tenantId, planMode, fallbackPlan }: Us
       cancelled = true;
       controller.abort();
     };
-  }, [apiBase, tenantId, planMode, fallbackPlan, fallbackHash]);
+  }, [apiBase, planEndpoint, tenantId, planMode, fallbackPlan, fallbackHash]);
 
   return state;
 }
