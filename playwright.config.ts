@@ -7,6 +7,13 @@ if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
 const CI = process.env.CI === 'true';
 const NEXT_DEV_ENV = 'CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true NEXT_USE_POLLING=true';
 const NEXT_DEV_HOST = 'HOST=0.0.0.0';
+const previewBrowserName = process.env.PLAYWRIGHT_PREVIEW_BROWSER ?? 'chromium';
+const previewDevice =
+  previewBrowserName === 'firefox'
+    ? devices['Desktop Firefox']
+    : previewBrowserName === 'webkit'
+      ? devices['Desktop Safari']
+      : devices['Desktop Chrome'];
 function resolveBypassHeaders(scope?: 'DEMO' | 'ADMIN' | 'API'): Record<string, string> | undefined {
   const headers: Record<string, string> = {};
 
@@ -94,7 +101,8 @@ export default defineConfig({
       grep: /@preview/,
       testMatch: ['**/projects/demo/**/*.spec.ts'],
       use: {
-        ...devices['Desktop Chrome'],
+        ...previewDevice,
+        browserName: previewBrowserName,
         baseURL: process.env.PREVIEW_DEMO_URL ?? process.env.PREVIEW_URL,
         extraHTTPHeaders: resolveBypassHeaders('DEMO')
       }
@@ -104,7 +112,8 @@ export default defineConfig({
       grep: /@preview/,
       testMatch: ['**/projects/admin/**/*.spec.ts'],
       use: {
-        ...devices['Desktop Chrome'],
+        ...previewDevice,
+        browserName: previewBrowserName,
         baseURL: process.env.PREVIEW_ADMIN_URL ?? process.env.PREVIEW_URL,
         extraHTTPHeaders: resolveBypassHeaders('ADMIN')
       }

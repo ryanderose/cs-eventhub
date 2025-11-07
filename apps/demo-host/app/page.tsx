@@ -100,12 +100,15 @@ function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule, pla
 }
 
 export default function Page() {
+  const [host, setHost] = useState<string | null>(
+    typeof window === 'undefined' ? process.env.NEXT_PUBLIC_DEMO_HOSTNAME ?? null : window.location.host ?? null
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const fallbackPlan = useMemo(() => createDefaultDemoPlan({ tenantId: DEFAULT_TENANT_ID }), []);
   const embedMode = useMemo(() => getEmbedMode(), []);
   const embedSrc = useMemo(() => getEmbedSrc(), []);
-  const configUrl = useMemo(() => getConfigUrl({ tenantId: DEFAULT_TENANT_ID }), []);
-  const apiBase = useMemo(() => getApiBase(), []);
+  const configUrl = useMemo(() => getConfigUrl({ tenantId: DEFAULT_TENANT_ID, host }), [host]);
+  const apiBase = useMemo(() => getApiBase({ host }), [host]);
   const planMode = useMemo(() => getPlanMode(), []);
   const { plan, planHash, status: planStatus, source: planSource, origin: planOrigin, error: planError } = useDefaultPlan({
     apiBase,
@@ -118,6 +121,16 @@ export default function Page() {
   const handleRef = useRef<EmbedHandle | null>(null);
   const currentHashRef = useRef<string | null>(null);
   const initialPlanRef = useRef<PageDoc | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    setHost((current) => {
+      const nextHost = window.location.host ?? null;
+      return current === nextHost ? current : nextHost;
+    });
+  }, []);
 
   const orderedPlanKeys = useMemo(() => {
     return [...plan.blocks].sort((a, b) => a.order - b.order).map((block) => block.key);
