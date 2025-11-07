@@ -106,6 +106,9 @@ async function proxyToApi(request: NextRequest, init: RequestInit): Promise<Next
   response.headers.forEach((value, key) => {
     headers.set(key, value);
   });
+  headers.delete('content-encoding');
+  headers.delete('content-length');
+  headers.delete('transfer-encoding');
 
   return new NextResponse(bufferedBody, {
     status: response.status,
