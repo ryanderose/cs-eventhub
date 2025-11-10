@@ -1,5 +1,37 @@
 import type { PageDoc } from '@events-hub/page-schema';
 
+export type HistoryMode = 'query' | 'hash' | 'none' | 'path';
+
+export type RouteView = 'list' | 'detail';
+
+export type RouteTemplates = {
+  list: string;
+  detail: string;
+};
+
+export type RouteTemplateOptions = {
+  basePath?: string;
+  routes?: Partial<RouteTemplates>;
+};
+
+export type RouteMatch = {
+  view: RouteView;
+  slug?: string;
+  pathname: string;
+};
+
+export type LocationLike = {
+  pathname: string;
+  search?: string;
+  hash?: string;
+};
+
+export type RouteSnapshot = RouteMatch & {
+  url: string;
+};
+
+export type RouteTakeoverMode = 'none' | 'container' | 'document';
+
 type ZstdModule = {
   compress(data: Uint8Array, level?: number): Uint8Array;
   decompress(data: Uint8Array): Uint8Array;
@@ -146,4 +178,147 @@ export function resolvePlanFromUrl(searchParams: URLSearchParams): string | unde
 
 export function canonicalizePath(path: string): string {
   return path.replace(/\/+/, '/');
+}
+
+const DEFAULT_BASE_PATH = '/events';
+
+function ensureLeadingSlash(path: string): string {
+  if (!path.startsWith('/')) {
+    return `/${path}`;
+  }
+  return path;
+}
+
+function stripTrailingSlash(path: string): string {
+  if (path === '/') {
+    return path;
+  }
+  return path.replace(/\/+$/, '');
+}
+
+function normalizePathname(pathname: string): string {
+  const normalized = pathname.trim() || '/';
+  return normalized === '/' ? normalized : stripTrailingSlash(ensureLeadingSlash(normalized));
+}
+
+function escapeSegment(segment: string): string {
+  return segment.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+}
+
+type CompiledTemplate = {
+  regex: RegExp;
+  params: string[];
+  template: string;
+};
+
+function compileTemplate(template: string): CompiledTemplate {
+  const normalizedTemplate = stripTrailingSlash(ensureLeadingSlash(template || '/'));
+  const segments = normalizedTemplate.split('/');
+  const params: string[] = [];
+  const pattern = segments
+    .map((segment) => {
+      if (segment.startsWith(':') && segment.length > 1) {
+        params.push(segment.slice(1));
+        return '([^/]+)';
+      }
+      if (!segment) {
+        return '';
+      }
+      return escapeSegment(segment);
+    })
+    .join('/');
+  const suffix = normalizedTemplate === '/' ? '' : '/?';
+  return { regex: new RegExp(`^${pattern}${suffix}$`), params, template: normalizedTemplate };
+}
+
+function matchTemplate(template: string, pathname: string): { params: Record<string, string>; template: string } | null {
+  const compiled = compileTemplate(template);
+  const match = compiled.regex.exec(pathname);
+  if (!match) {
+    return null;
+  }
+  const params: Record<string, string> = {};
+  compiled.params.forEach((param, index) => {
+    params[param] = match[index + 1];
+  });
+  return { params, template: compiled.template };
+}
+
+export function resolveRouteTemplates(basePath?: string, routes?: Partial<RouteTemplates>): RouteTemplates {
+  const normalizedBase = normalizePathname(basePath ?? DEFAULT_BASE_PATH);
+  const listTemplate = routes?.list ? normalizePathname(routes.list) : normalizedBase || '/';
+  let detailTemplate: string;
+  if (routes?.detail) {
+    detailTemplate = normalizePathname(routes.detail);
+  } else {
+    const basePrefix = normalizedBase === '/' ? '' : normalizedBase;
+    detailTemplate = `${basePrefix}/:slug`.replace(/\/+/, '/');
+    if (!detailTemplate.startsWith('/')) {
+      detailTemplate = `/${detailTemplate}`;
+    }
+  }
+  return {
+    list: listTemplate,
+    detail: detailTemplate || '/:slug'
+  };
+}
+
+export function matchRouteFromPath(pathname: string, options: RouteTemplateOptions = {}): RouteMatch | null {
+  const normalizedPath = normalizePathname(pathname);
+  const templates = resolveRouteTemplates(options.basePath, options.routes);
+  const detailMatch = matchTemplate(templates.detail, normalizedPath);
+  if (detailMatch) {
+    const slug = detailMatch.params.slug ?? Object.values(detailMatch.params)[0];
+    return { view: 'detail', slug, pathname: normalizedPath };
+  }
+  const listMatch = matchTemplate(templates.list, normalizedPath);
+  if (listMatch) {
+    return { view: 'list', pathname: normalizedPath };
+  }
+  return null;
+}
+
+export function formatRoutePath(route: { view: RouteView; slug?: string }, options: RouteTemplateOptions = {}): string {
+  const templates = resolveRouteTemplates(options.basePath, options.routes);
+  const template = route.view === 'detail' ? templates.detail : templates.list;
+  if (route.view === 'detail') {
+    if (!route.slug) {
+      throw new Error('detail routes require a slug');
+    }
+    const placeholderMatch = template.match(/:([a-zA-Z0-9_]+)/);
+    if (!placeholderMatch) {
+      return template;
+    }
+    return template.replace(placeholderMatch[0], route.slug);
+  }
+  return template;
+}
+
+export function getRouteSnapshot(location: LocationLike, options: RouteTemplateOptions & { historyMode?: HistoryMode } = {}): RouteSnapshot {
+  const { pathname = '/', search = '', hash = '' } = location;
+  const match = matchRouteFromPath(pathname, options);
+  const snapshot: RouteMatch =
+    match ??
+    ({
+      view: 'list',
+      pathname: normalizePathname(pathname)
+    } as RouteMatch);
+  return {
+    ...snapshot,
+    url: `${pathname}${search ?? ''}${hash ?? ''}`
+  };
+}
+
+export function parseHistoryMode(mode?: string | null): HistoryMode {
+  if (mode === 'hash' || mode === 'none' || mode === 'path') {
+    return mode;
+  }
+  return 'query';
+}
+
+export function parseRouteTakeoverMode(mode?: string | null): RouteTakeoverMode {
+  if (mode === 'container' || mode === 'document') {
+    return mode;
+  }
+  return 'none';
 }

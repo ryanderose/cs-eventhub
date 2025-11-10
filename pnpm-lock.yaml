@@ -253,6 +253,9 @@ importers:
       '@events-hub/router-helpers':
         specifier: workspace:*
         version: link:../router-helpers
+      '@events-hub/security':
+        specifier: workspace:*
+        version: link:../security
       '@events-hub/telemetry':
         specifier: workspace:*
         version: link:../telemetry

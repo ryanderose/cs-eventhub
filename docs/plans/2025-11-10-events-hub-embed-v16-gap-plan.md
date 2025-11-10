@@ -49,11 +49,11 @@
 
 **Success Criteria**  
 **Automated**
-- [ ] Build/typecheck: `pnpm -w build`
-- [ ] Unit tests (SDK, helpers): `pnpm -w test --filter=embed-sdk`
-- [ ] Lint/style: `pnpm -w lint`
-- [ ] Bundle budgets (Phase-A/B measurement wired but may still fail pending Phase 2 config): `pnpm -w check:bundles`
-- [ ] Security scans (TT policy, dependencies): `pnpm -w security:sbom`
+- [x] Build/typecheck: `pnpm -w build`
+- [x] Unit tests (SDK, helpers): `pnpm -w test --filter=embed-sdk`
+- [x] Lint/style: `pnpm -w lint`
+- [x] Bundle budgets (Phase-A/B measurement wired but may still fail pending Phase 2 config): `pnpm -w check:bundles`
+- [x] Security scans (TT policy, dependencies): `pnpm -w security:sbom`
 **Manual**
 - [ ] Demo host running `pnpm dev:stack` mounts snippet using query/hash/path modes and verifies lazy mount/legacy mount flows.
 - [ ] Browser session with Trusted Types enforced shows safe abort when policy creation is blocked.

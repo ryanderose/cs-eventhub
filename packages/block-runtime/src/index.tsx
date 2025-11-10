@@ -10,7 +10,15 @@ export type RenderOptions = {
   block: BlockInstance;
 };
 
+function assertShadowRoot(container: HTMLElement) {
+  const root = container.getRootNode();
+  if (!(root instanceof ShadowRoot)) {
+    throw new Error('Overlay-capable blocks must render inside a ShadowRoot for isolation.');
+  }
+}
+
 export function renderBlock({ container, block }: RenderOptions) {
+  assertShadowRoot(container);
   const renderer = getBlock(block.key) as BlockRenderer<Record<string, unknown>> | undefined;
   const fallbackProps = { 'data-missing-block': true } as Record<string, unknown>;
   const Component: BlockRenderer<Record<string, unknown>> = renderer ?? (() =>

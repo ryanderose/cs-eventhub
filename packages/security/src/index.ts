@@ -41,3 +41,48 @@ export function buildFragmentCsp({ scriptSrc = [], styleSrc = [], connectSrc = [
   directives.push("base-uri 'none'");
   return directives.join('; ');
 }
+
+export const HUB_TRUSTED_TYPES_POLICY = 'hub-embed';
+
+type TrustedTypePolicyLike = {
+  createHTML?: (value: string) => string;
+  createScriptURL?: (value: string) => string;
+};
+
+export type TrustedTypePolicyFactoryLike = {
+  createPolicy?: (name: string, rules: TrustedTypePolicyLike) => TrustedTypePolicyLike;
+  getPolicy?: (name: string) => TrustedTypePolicyLike | null;
+};
+
+export type TrustedTypesInitResult = {
+  policy: TrustedTypePolicyLike | null;
+  supported: boolean;
+  enforced: boolean;
+  error?: Error;
+};
+
+export function tryCreateTrustedTypesPolicy(factory: TrustedTypePolicyFactoryLike | undefined | null, name = HUB_TRUSTED_TYPES_POLICY): TrustedTypesInitResult {
+  if (!factory || typeof factory.createPolicy !== 'function') {
+    return { policy: null, supported: false, enforced: false };
+  }
+  if (typeof factory.getPolicy === 'function') {
+    const existing = factory.getPolicy(name);
+    if (existing) {
+      return { policy: existing, supported: true, enforced: false };
+    }
+  }
+  try {
+    const policy = factory.createPolicy(name, {
+      createHTML: (value: string) => value,
+      createScriptURL: (value: string) => value
+    });
+    return { policy, supported: true, enforced: false };
+  } catch (error) {
+    return {
+      policy: null,
+      supported: true,
+      enforced: true,
+      error: error instanceof Error ? error : new Error(String(error))
+    };
+  }
+}

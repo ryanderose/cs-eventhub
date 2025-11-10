@@ -28,6 +28,7 @@
   "dependencies": {
     "@events-hub/page-schema": "workspace:*",
     "@events-hub/router-helpers": "workspace:*",
+    "@events-hub/security": "workspace:*",
     "@events-hub/telemetry": "workspace:*",
     "preact": "10.19.3"
   },
