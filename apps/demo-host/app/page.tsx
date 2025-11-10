@@ -1,101 +1,23 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { EmbedConfig, EmbedHandle } from '@events-hub/embed-sdk';
+import type { EmbedHandle } from '@events-hub/embed-sdk';
 import type { PageDoc } from '@events-hub/page-schema';
 import { createDefaultDemoPlan } from '@events-hub/default-plan';
 import { DEFAULT_TENANT, getApiBase, getConfigUrl, getEmbedMode, getEmbedSrc, getPlanMode } from '../lib/env';
 import { useDefaultPlan } from '../lib/useDefaultPlan';
-
-type EmbedModule = { create(config: EmbedConfig): EmbedHandle };
-
-declare global {
-  interface Window {
-    EventsHubEmbed?: EmbedModule;
-  }
-}
+import { DEMO_EMBED_THEME } from '../lib/embed-theme';
+import { createEmbedHandle, loadEmbedModule, type EmbedModule } from '../lib/embed-loader';
 
 const DEFAULT_TENANT_ID = DEFAULT_TENANT;
-const EMBED_THEME = {
-  '--eh-color-bg': '#020617',
-  '--eh-color-text': '#e2e8f0'
-} satisfies Record<string, string>;
-
-function resolveGlobalModule(): EmbedModule | undefined {
-  if (typeof window === 'undefined') return undefined;
-  const embedModule = window.EventsHubEmbed;
-  if (embedModule && typeof embedModule.create === 'function') {
-    return embedModule;
-  }
-  return undefined;
-}
-
-async function loadExternalModule(src: string): Promise<EmbedModule> {
-  if (typeof document === 'undefined') {
-    throw new Error('External embed mode requires a browser environment.');
-  }
-  const existing = resolveGlobalModule();
-  if (existing) {
-    return existing;
-  }
-  if (!src) {
-    throw new Error('NEXT_PUBLIC_EMBED_SRC must be defined for external embed mode.');
-  }
-
-  return new Promise<EmbedModule>((resolve, reject) => {
-    const onReady = () => {
-      const embedModule = resolveGlobalModule();
-      if (embedModule) {
-        resolve(embedModule);
-      } else {
-        reject(new Error('The embed SDK failed to register the expected global.'));
-      }
-    };
-    const onError = () => {
-      reject(new Error(`Failed to load the embed SDK from ${src}.`));
-    };
-
-    const existingScript = document.querySelector<HTMLScriptElement>('script[data-events-hub-embed]');
-    if (existingScript) {
-      if (existingScript.dataset.loaded === 'true' && resolveGlobalModule()) {
-        resolve(resolveGlobalModule()!);
-        return;
-      }
-      existingScript.addEventListener('load', onReady, { once: true });
-      existingScript.addEventListener('error', onError, { once: true });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = true;
-    script.dataset.eventsHubEmbed = 'true';
-    script.addEventListener(
-      'load',
-      () => {
-        script.dataset.loaded = 'true';
-        onReady();
-      },
-      { once: true }
-    );
-    script.addEventListener('error', onError, { once: true });
-    document.head.appendChild(script);
-  });
-}
-
-async function loadEmbedModule(mode: ReturnType<typeof getEmbedMode>, src: string): Promise<EmbedModule> {
-  if (mode === 'external') {
-    return loadExternalModule(src);
-  }
-  return import('@events-hub/embed-sdk/dist/index.esm.js');
-}
 
 function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule, plan: PageDoc) {
-  return embedModule.create({
+  return createEmbedHandle({
     container,
+    embedModule,
     tenantId: plan.tenantId ?? DEFAULT_TENANT_ID,
-    initialPlan: plan,
-    theme: EMBED_THEME
+    plan,
+    config: { theme: { ...DEMO_EMBED_THEME } }
   });
 }
 

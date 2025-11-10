@@ -55,9 +55,9 @@
 - [x] Bundle budgets (Phase-A/B measurement wired but may still fail pending Phase 2 config): `pnpm -w check:bundles`
 - [x] Security scans (TT policy, dependencies): `pnpm -w security:sbom`
 **Manual**
-- [ ] Demo host running `pnpm dev:stack` mounts snippet using query/hash/path modes and verifies lazy mount/legacy mount flows.
-- [ ] Browser session with Trusted Types enforced shows safe abort when policy creation is blocked.
-- [ ] Two embeds on one page navigate independently, intercepting clicks per scope with deterministic router owner.
+- [x] Demo host running `pnpm dev:stack` mounts snippet using query/hash/path modes and verifies lazy mount/legacy mount flows.
+- [x] Browser session with Trusted Types enforced shows safe abort when policy creation is blocked.
+- [x] Two embeds on one page navigate independently, intercepting clicks per scope with deterministic router owner.
 
 ---
 
