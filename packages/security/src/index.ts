@@ -3,18 +3,30 @@ const URL_ATTRS = new Set(['href']);
 
 export function sanitizeHtml(input: string): string {
   return input.replace(/<([^>]+)>/g, (match, tag) => {
-    const [tagName] = tag.split(/\s+/);
-    if (!ALLOWED_TAGS.has(tagName.toLowerCase())) {
+    const [rawTagName] = tag.trim().split(/\s+/);
+    const lowerCased = rawTagName.toLowerCase();
+    const isClosingTag = lowerCased.startsWith('/');
+    const normalizedTag = isClosingTag ? lowerCased.slice(1) : lowerCased;
+
+    if (!ALLOWED_TAGS.has(normalizedTag)) {
       return '';
     }
-    if (tagName.toLowerCase() === 'a') {
-      return match.replace(/href="([^"]*)"/g, (_, href) => {
-        if (href.startsWith('javascript:')) {
+
+    if (isClosingTag) {
+      const closingTagName = rawTagName.slice(1) || normalizedTag;
+      return `</${closingTagName}>`;
+    }
+
+    if (normalizedTag === 'a') {
+      return match.replace(/href="([^"]*)"/gi, (_, href) => {
+        const normalizedHref = href.trim();
+        if (normalizedHref.toLowerCase().startsWith('javascript:')) {
           return 'href="#"';
         }
-        return `href="${href}"`;
+        return `href="${normalizedHref}"`;
       });
     }
+
     return match;
   });
 }
