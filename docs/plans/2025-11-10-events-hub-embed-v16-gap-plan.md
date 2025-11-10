@@ -99,6 +99,7 @@
 - Docs: `docs/engineering/embed-dev.md:1` & `docs/engineering/ARCHITECTURE.md:1` — update with new routing modes, consent API usage, TT requirements, network budget expectations, and troubleshooting guide referencing `[hub-embed]` errors.
 - Release: `scripts/turbo-run.sh:1` & `.github/pull_request_template.md:1` — add steps for budgets + acceptance suite, ensuring PR authors certify manual verifications.
 - Observability: `apps/api/src/lib/telemetry.ts:1` & `packages/telemetry/src/index.ts:1` — add events/logging for consent state transitions and partner adapter callbacks for monitoring.
+- Playwright/CI: expand `playwright/projects/demo/manual-harness.spec.ts` into the full acceptance matrix (consent, adapters, overlay isolation, router readiness, snippet refusal) and add a CI job that runs `pnpm playwright test --project=demo-hosts-local` after explicitly enabling Playwright MCP. Document this requirement in `docs/engineering/embed-dev.md` so contributors know to grant MCP before running Playwright locally.
 
 **Notes**
 - Keep acceptance suite stable by using demo fixtures hosted in repo (no live API dependency) to avoid flaky runs.

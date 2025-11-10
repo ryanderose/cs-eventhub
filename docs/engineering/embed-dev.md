@@ -41,6 +41,20 @@ The demo host fetches the canonical default plan from the API whenever `NEXT_PUB
   - `data-plan-origin`: `seeded`, `stored`, or `fallback`.
   - `data-plan-hash` / `data-plan-keys`: persisted hash plus the ordered block keys currently rendered.
 
+## Manual verification harness
+
+Phase 1 introduced a set of dedicated demo-host routes so we can exercise every manual checklist item (routing, lazy/legacy mount, Trusted Types abort, multi-embed ownership) without maintaining scratch HTML. Start `pnpm dev:stack` and visit:
+
+- `/manual` — index of every harness.  
+- `/manual/routing` — query/hash persistence.  
+- `/events` (and `/events/:slug`) — path routing + hard refresh checks.  
+- `/manual/lazy` — IntersectionObserver lazy mount.  
+- `/manual/legacy` — `data-mount-before` placeholder path.  
+- `/manual/trusted-types` — forces Trusted Types policy failure to verify the abort UI.  
+- `/manual/multi` — two embeds on one page with router ownership diagnostics.
+
+The Playwright spec at `playwright/projects/demo/manual-harness.spec.ts` automates smoke coverage of these routes so later phases can lean on the same harness. **Important:** Playwright cannot run directly in this CLI sandbox; before invoking `pnpm test:e2e:local` (or any Playwright command) you must enable the Playwright MCP integration when prompted. If MCP access is unavailable, document the gap instead of attempting to run the suite.
+
 ### Reseeding and parity checks
 
 1. Seed (or rewrite) the default plan pointer before switching to production mode:
