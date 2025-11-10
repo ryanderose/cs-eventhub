@@ -6,8 +6,9 @@ This guide explains how to run the full embed stack locally and how to switch be
 
 `pnpm dev:stack` starts the services on these hostnames:
 
-- **Next demo host** – `localhost:3000`
-- **Vercel API emulator** – `localhost:3000` via `vercel dev`
+- **Demo host** – `localhost:3000`
+- **Admin console** – `localhost:3001`
+- **API (Express BFF)** – `localhost:4000`
 - **Embed SDK watcher** – rebuilds `packages/embed-sdk/dist`
 - **Static CDN server** – `localhost:5173` with `Cache-Control: no-store`
 
@@ -56,7 +57,7 @@ The demo host fetches the canonical default plan from the API whenever `NEXT_PUB
 
 ## Beta vs production manifests
 
-The API now serves signed config payloads at `http://localhost:3000/config/tenants/<tenant>.json`. Each tenant exposes `manifests.beta` and `manifests.prod` along with the currently selected `embed.manifestUrl`.
+The API now serves signed config payloads at `http://localhost:4000/config/tenants/<tenant>.json`. Each tenant exposes `manifests.beta` and `manifests.prod` along with the currently selected `embed.manifestUrl`.
 
 - Use `mode=beta` (default) to reference the locally served manifest at `http://localhost:5173/manifest.json`.
 - Use `mode=prod` to mirror the production manifest URL (override via `CONFIG_PROD_MANIFEST`).
