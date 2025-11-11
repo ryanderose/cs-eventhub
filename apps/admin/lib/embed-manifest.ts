@@ -21,15 +21,58 @@ type RawManifest = {
 };
 
 const EMBED_DIR_PATTERN = /^hub-embed@[A-Za-z0-9._-]+$/;
-const DEFAULT_BASE_PATHS = [
-  process.env.EMBED_MANIFEST_ROOT,
-  process.env.CDN_MANIFEST_ROOT,
-  path.resolve(process.cwd(), 'apps/cdn/public'),
-  path.resolve(process.cwd(), '../cdn/public'),
-  path.resolve(process.cwd(), '../../apps/cdn/public')
-].filter(Boolean) as string[];
+function candidateManifestRoots(): string[] {
+  return [
+    process.env.EMBED_MANIFEST_ROOT,
+    process.env.CDN_MANIFEST_ROOT,
+    path.resolve(process.cwd(), 'apps/cdn/public'),
+    path.resolve(process.cwd(), '../cdn/public'),
+    path.resolve(process.cwd(), '../../apps/cdn/public')
+  ]
+    .filter(Boolean)
+    .map((entry) => path.resolve(entry as string));
+}
 
 let cachedRoot: string | null = null;
+
+export function clearEmbedManifestCacheForTests() {
+  cachedRoot = null;
+}
+
+function normalizeBasePath(value?: string | null): string {
+  if (!value) return '/';
+  const trimmed = value.trim();
+  if (!trimmed) return '/';
+  const prefixed = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  if (prefixed === '/') {
+    return prefixed;
+  }
+  return prefixed.replace(/\/+$/, '');
+}
+
+function normalizeAssetPath(candidate: string): string {
+  if (!candidate) return '/';
+  if (candidate.startsWith('http://') || candidate.startsWith('https://')) {
+    try {
+      return normalizeBasePath(new URL(candidate).pathname || '/');
+    } catch {
+      // fall through to local normalization
+    }
+  }
+  return normalizeBasePath(candidate);
+}
+
+function assetPathMatchesBase(assetPath: string | undefined, expectedBasePath: string): boolean {
+  if (!assetPath) {
+    return false;
+  }
+  const candidate = normalizeAssetPath(assetPath);
+  const expected = normalizeBasePath(expectedBasePath);
+  if (expected === '/') {
+    return candidate.startsWith('/');
+  }
+  return candidate === expected || candidate.startsWith(`${expected}/`);
+}
 
 function isValidDirname(name: string): boolean {
   return EMBED_DIR_PATTERN.test(name);
@@ -48,11 +91,10 @@ async function resolveManifestRoot(): Promise<string> {
   if (cachedRoot) {
     return cachedRoot;
   }
-  for (const candidate of DEFAULT_BASE_PATHS) {
-    const resolved = path.resolve(candidate);
-    if (await pathExists(resolved)) {
-      cachedRoot = resolved;
-      return resolved;
+  for (const candidate of candidateManifestRoots()) {
+    if (await pathExists(candidate)) {
+      cachedRoot = candidate;
+      return candidate;
     }
   }
   throw new Error('Embed manifest root not found. Set EMBED_MANIFEST_ROOT or run pnpm publish:embed.');
@@ -210,9 +252,14 @@ function summarizeManifest(
 
   const derivedVersion = dirName.replace(/^hub-embed@/i, '') || dirName;
   const version = manifest.version ?? derivedVersion;
-  const cdnBasePath = manifest.cdnBasePath ?? `/${dirName}`;
+  const inferredBasePath = normalizeBasePath(`/${dirName}`);
+  const cdnBasePath = normalizeBasePath(manifest.cdnBasePath ?? inferredBasePath);
   if (!manifest.cdnBasePath) {
     warnings.push('Manifest missing cdnBasePath — falling back to inferred path.');
+  } else if (cdnBasePath !== inferredBasePath) {
+    errors.push(
+      `Manifest cdnBasePath (${manifest.cdnBasePath}) does not match directory (${inferredBasePath}). This indicates CDN drift; rerun pnpm publish:embed.`
+    );
   }
   const assets = Array.isArray(manifest.assets) ? manifest.assets : [];
   if (!manifest.assets) {
@@ -226,8 +273,10 @@ function summarizeManifest(
     } else if (!asset.integrity.startsWith('sha384-')) {
       warnings.push(`Asset ${asset.filename} should use sha384 integrity hashes.`);
     }
-    if (!asset.path.startsWith(cdnBasePath)) {
-      warnings.push(`Asset ${asset.filename} path does not include ${cdnBasePath}.`);
+    if (!assetPathMatchesBase(asset.path, cdnBasePath)) {
+      errors.push(
+        `Asset ${asset.filename} path (${asset.path}) does not include manifest cdnBasePath (${cdnBasePath}). This indicates CDN drift.`
+      );
     }
   }
 

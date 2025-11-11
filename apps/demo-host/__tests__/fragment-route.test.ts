@@ -102,4 +102,27 @@ describe('SEO fragment route', () => {
     const error = await response.json();
     expect(error.error).toContain('Fragment request failed');
   });
+
+  it('forwards view and slug query params upstream', async () => {
+    const payload = {
+      html: '<div />',
+      css: '',
+      jsonLd: '{}',
+      parity: { diffPercent: 0, withinThreshold: true, idsMatch: true },
+      noindex: false
+    };
+
+    const fetchStub = vi.fn(() => mockResponse(payload, { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch;
+    globalThis.fetch = fetchStub;
+
+    await GET(new Request('https://demo.localhost/app/(seo)/fragment/demo?view=detail&slug=from-client'), {
+      params: { tenant: 'demo' }
+    });
+
+    expect(fetchStub).toHaveBeenCalledTimes(1);
+    const target = fetchStub.mock.calls[0]?.[0];
+    expect(typeof target).toBe('string');
+    expect((target as string).includes('view=detail')).toBe(true);
+    expect((target as string).includes('slug=from-client')).toBe(true);
+  });
 });

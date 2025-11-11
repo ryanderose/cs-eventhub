@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ManualEmbed } from '../../manual/components/ManualEmbed';
+import { PlanAwareManualEmbed } from '../../manual/components/PlanAwareManualEmbed';
 
 type Params = { slug?: string[] };
 
@@ -18,7 +18,7 @@ export default function EventsPathPage({ params }: { params: Params }) {
         server 404.
       </p>
       <p className="status">Current detail slug: {activeSlug ?? 'list view'}</p>
-      <ManualEmbed
+      <PlanAwareManualEmbed
         embedId="manual-path"
         config={{
           historyMode: 'path',

@@ -1,4 +1,4 @@
-import { compareJsonLd } from '../../../demo-host/lib/seoParity';
+import { compareJsonLd, type JsonLdParityResult } from '../../../demo-host/lib/seoParity';
 
 export const config = { runtime: 'edge' };
 
@@ -47,8 +47,41 @@ function extractTenantId(url: URL): string {
   );
 }
 
-function buildJsonLdPayload(tenantId: string) {
+type JsonLdOptions = {
+  view?: 'list' | 'detail';
+  slug?: string | null;
+};
+
+function sanitizeSlug(slug?: string | null): string {
+  if (!slug) return 'sample-event';
+  const normalized = slug
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized || 'sample-event';
+}
+
+function buildJsonLdPayload(tenantId: string, options: JsonLdOptions = {}) {
   const baseId = `https://events.example.com/${tenantId}`;
+  if (options.view === 'detail') {
+    const slug = sanitizeSlug(options.slug);
+    const eventId = `${baseId}/events/${slug}`;
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Event',
+      '@id': eventId,
+      name: `Sample detail event (${slug})`,
+      url: eventId,
+      startDate: new Date().toISOString(),
+      location: {
+        '@type': 'Place',
+        name: 'Demo Venue',
+        address: '123 Demo St, Demo City'
+      }
+    };
+  }
+
   return {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
@@ -81,9 +114,12 @@ export default async function handler(request: Request): Promise<Response> {
 
   const url = new URL(request.url);
   const tenantId = extractTenantId(url);
+  const viewParam = (url.searchParams.get('view') ?? 'list').toLowerCase();
+  const view: 'list' | 'detail' = viewParam === 'detail' ? 'detail' : 'list';
+  const slugParam = url.searchParams.get('slug');
   const html = `<div data-tenant="${tenantId}">Fragment placeholder</div>`;
 
-  const jsonLdObject = buildJsonLdPayload(tenantId);
+  const jsonLdObject = buildJsonLdPayload(tenantId, { view, slug: slugParam });
   const jsonLd = JSON.stringify(jsonLdObject);
   const parity = compareJsonLd(jsonLd, jsonLd, { tolerance: 0.01 });
   if (!parity.withinThreshold || !parity.idsMatch) {
@@ -105,7 +141,26 @@ export default async function handler(request: Request): Promise<Response> {
     if (noindex) {
       headers.set('X-Robots-Tag', 'noindex');
     }
-    return new Response(JSON.stringify({ html, styles: { css: '' }, cssHash: '', jsonLd, parity, noindex }), {
+    const payload = {
+      html,
+      styles: { css: '' },
+      cssHash: '',
+      jsonLd,
+      parity,
+      noindex,
+      view,
+      slug: view === 'detail' ? sanitizeSlug(slugParam) : undefined
+    } satisfies {
+      html: string;
+      styles: { css: string };
+      cssHash: string;
+      jsonLd: string;
+      parity: JsonLdParityResult;
+      noindex: boolean;
+      view: 'list' | 'detail';
+      slug?: string;
+    };
+    return new Response(JSON.stringify(payload), {
       status: 200,
       headers
     });

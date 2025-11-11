@@ -25,4 +25,17 @@ describe('fragment JSON-LD parity enforcement', () => {
     const payload = await response.json();
     expect(payload.noindex).toBe(true);
   });
+
+  it('returns detail payloads when view=detail', async () => {
+    const request = new Request('https://example.com/v1/fragment/demo?view=detail&slug=my-special-event', {
+      method: 'GET',
+      headers: { accept: 'application/json' }
+    });
+    const response = await fragmentHandler(request);
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.view).toBe('detail');
+    expect(payload.slug).toBe('my-special-event');
+    expect(payload.jsonLd).toContain('/events/my-special-event');
+  });
 });

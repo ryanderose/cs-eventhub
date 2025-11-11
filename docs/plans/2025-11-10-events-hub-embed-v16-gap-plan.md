@@ -1,7 +1,7 @@
 # Events Hub Embed v1.6 Gap Closure — Implementation Plan
 
 ## Overview
-- Deliver the spec-complete, no-iframe embed snippet (Final Spec v1.6: docs/specs/2025-11-09-events-hub-embed-final-spec-1.6.md) by implementing the missing SDK, admin, SEO, and CI capabilities documented in research so publishers can ship a single compliant integration across 3,000+ sites.
+ Deliver the spec-complete, no-iframe embed snippet (Final Spec v1.6 ticket: docs/specs/2025-11-09-events-hub-embed-final-spec-1.6.md) by implementing the missing SDK, admin, SEO, and CI capabilities documented in research so publishers can ship a single compliant integration across 3,000+ sites.
 - Focus areas: consent/partner APIs, Trusted Types, routing + lazy/legacy mount, analytics schema, admin manifest guards, SEO JSON-LD parity, performance budgets, and acceptance coverage.
 
 ## Current State (from Research)
@@ -84,9 +84,9 @@
 - [x] Accessibility: `pnpm -w check:a11y` (overlays inside ShadowRoot).
 - [x] Supply chain: `pnpm -w security:provenance`
 **Manual**
-- [ ] Attempt to generate snippet with tampered manifest; UI blocks copy with explicit drift message.
-- [ ] Review JSON-LD diff report (<1% delta) for list and detail routes via demo host Inspector.
-- [ ] Inspect admin-generated snippet tags to confirm `crossorigin` + SRI attributes match manifest.
+- [x] Attempt to generate snippet with tampered manifest; UI blocks copy with explicit drift message.
+- [x] Review JSON-LD diff report (<1% delta) for list and detail routes via demo host Inspector.
+- [x] Inspect admin-generated snippet tags to confirm `crossorigin` + SRI attributes match manifest.
 
 ---
 

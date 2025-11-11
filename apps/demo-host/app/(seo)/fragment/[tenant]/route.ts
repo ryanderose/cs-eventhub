@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { defaultRevalidateSeconds, defaultStaleWhileRevalidateSeconds } from '../../../../lib/cache';
 import { getApiBase } from '../../../../lib/env';
+import type { JsonLdParityResult } from '../../../../lib/seoParity';
 
 export const runtime = 'edge';
 export const revalidate = defaultRevalidateSeconds;
@@ -11,8 +12,10 @@ type FragmentPayload = {
   styles?: { css?: string };
   cssHash?: string;
   jsonLd?: string;
-  parity?: { diffPercent: number; withinThreshold: boolean; idsMatch: boolean };
+  parity?: JsonLdParityResult;
   noindex?: boolean;
+  view?: 'list' | 'detail';
+  slug?: string;
 };
 
 async function hashCss(css: string): Promise<string> {
@@ -30,16 +33,60 @@ function normalizeApiBase(base: string): string {
   return base.endsWith('/') ? base.slice(0, -1) : base;
 }
 
+function normalizeTenantId(value?: string | null): string {
+  if (!value) {
+    return 'demo';
+  }
+  const normalized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return normalized || 'demo';
+}
+
+async function readUpstreamError(response: Response): Promise<string> {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    try {
+      const payload = (await response.json()) as { error?: string };
+      if (payload?.error) {
+        return payload.error;
+      }
+    } catch {
+      // fall through to text handling
+    }
+  }
+  try {
+    const text = await response.text();
+    if (text.trim()) {
+      return text.trim();
+    }
+  } catch {
+    // ignore
+  }
+  return `Fragment request failed with status ${response.status}.`;
+}
+
 export async function GET(request: Request, { params }: { params: { tenant: string } }) {
   const apiBase = getApiBase({ host: request.headers.get('host') });
   if (!apiBase) {
     return NextResponse.json({ error: 'NEXT_PUBLIC_API_BASE is not configured.' }, { status: 500 });
   }
 
-  const tenant = params?.tenant ?? 'demo';
-  const url = `${normalizeApiBase(apiBase)}/v1/fragment/${tenant}`;
+  const currentUrl = new URL(request.url);
+  const tenantParam = params?.tenant ?? currentUrl.searchParams.get('tenantId') ?? 'demo';
+  const tenant = normalizeTenantId(tenantParam);
+  const upstreamUrl = new URL(`${normalizeApiBase(apiBase)}/v1/fragment/${tenant}`);
+  upstreamUrl.searchParams.set('tenantId', tenant);
+  ['view', 'slug'].forEach((param) => {
+    const value = currentUrl.searchParams.get(param);
+    if (value) {
+      upstreamUrl.searchParams.set(param, value);
+    }
+  });
 
-  const upstream = await fetch(url, {
+  const upstream = await fetch(upstreamUrl.toString(), {
     headers: {
       accept: 'application/json',
       'x-embed-config': request.headers.get('x-embed-config') ?? '',
@@ -49,7 +96,8 @@ export async function GET(request: Request, { params }: { params: { tenant: stri
   });
 
   if (!upstream.ok) {
-    return NextResponse.json({ error: `Fragment request failed with status ${upstream.status}.` }, { status: upstream.status });
+    const errorMessage = await readUpstreamError(upstream);
+    return NextResponse.json({ error: errorMessage }, { status: upstream.status });
   }
 
   const payload = (await upstream.json()) as FragmentPayload;

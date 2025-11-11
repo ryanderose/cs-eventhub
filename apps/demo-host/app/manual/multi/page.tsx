@@ -1,4 +1,4 @@
-import { ManualEmbed } from '../components/ManualEmbed';
+import { PlanAwareManualEmbed } from '../components/PlanAwareManualEmbed';
 
 export const metadata = {
   title: 'Multi-embed harness — Events Hub Demo Host'
@@ -16,11 +16,11 @@ export default function MultiEmbedPage() {
       <div className="multi-embed-grid">
         <section>
           <h2>Embed A — router owner</h2>
-          <ManualEmbed embedId="manual-multi-a" config={{ historyMode: 'query', routeTakeover: 'container' }} />
+          <PlanAwareManualEmbed embedId="manual-multi-a" config={{ historyMode: 'query', routeTakeover: 'container' }} />
         </section>
         <section>
           <h2>Embed B — scoped clicks</h2>
-          <ManualEmbed embedId="manual-multi-b" config={{ historyMode: 'hash', routeTakeover: 'none' }} />
+          <PlanAwareManualEmbed embedId="manual-multi-b" config={{ historyMode: 'hash', routeTakeover: 'none' }} />
         </section>
       </div>
     </main>

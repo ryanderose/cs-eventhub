@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ManualEmbed } from '../components/ManualEmbed';
+import { PlanAwareManualEmbed } from '../components/PlanAwareManualEmbed';
 
 export const metadata = {
   title: 'Routing harness — Events Hub Demo Host'
@@ -18,13 +18,13 @@ export default function RoutingHarnessPage() {
       <section>
         <h2>historyMode=&quot;query&quot;</h2>
         <p>State is stored in <code>?hubPlan=</code>. Inspect the query string while interacting with the embed.</p>
-        <ManualEmbed embedId="manual-query" config={{ historyMode: 'query' }} />
+        <PlanAwareManualEmbed embedId="manual-query" config={{ historyMode: 'query' }} />
       </section>
 
       <section>
         <h2>historyMode=&quot;hash&quot;</h2>
         <p>This embed persists state to <code>#hubPlan=…</code>. Confirm <code>hashchange</code> events fire as expected.</p>
-        <ManualEmbed embedId="manual-hash" config={{ historyMode: 'hash' }} />
+        <PlanAwareManualEmbed embedId="manual-hash" config={{ historyMode: 'hash' }} />
       </section>
     </main>
   );

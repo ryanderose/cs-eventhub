@@ -1,4 +1,4 @@
-import { ManualEmbed } from '../components/ManualEmbed';
+import { PlanAwareManualEmbed } from '../components/PlanAwareManualEmbed';
 
 export const metadata = {
   title: 'Lazy mount harness — Events Hub Demo Host'
@@ -16,7 +16,7 @@ export default function LazyMountPage() {
       <div style={{ height: '65vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(148,163,184,0.9)' }}>
         Scroll down to trigger the lazy observer…
       </div>
-      <ManualEmbed embedId="manual-lazy" config={{ lazy: true }} />
+      <PlanAwareManualEmbed embedId="manual-lazy" config={{ lazy: true }} />
     </main>
   );
 }

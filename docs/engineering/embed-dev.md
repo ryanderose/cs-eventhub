@@ -53,7 +53,22 @@ Phase 1 introduced a set of dedicated demo-host routes so we can exercise every 
 - `/manual/trusted-types` — forces Trusted Types policy failure to verify the abort UI.  
 - `/manual/multi` — two embeds on one page with router ownership diagnostics.
 
+The home page also includes an **SEO Parity Inspector** widget underneath the status readout. It fetches `/fragment/<tenant>` (list + detail) through the demo-host proxy, surfaces the JSON-LD diff percentage, ID parity, CSS hash, and lets you copy the JSON-LD payload. Use it to satisfy the plan’s “Review JSON-LD diff report (<1% delta)” manual step without crafting additional tooling.
+
 The Playwright spec at `playwright/projects/demo/manual-harness.spec.ts` automates smoke coverage of these routes so later phases can lean on the same harness. **Important:** Playwright cannot run directly in this CLI sandbox; before invoking `pnpm test:e2e:local` (or any Playwright command) you must enable the Playwright MCP integration when prompted. If MCP access is unavailable, document the gap instead of attempting to run the suite.
+
+### Trusted Types console noise
+
+`/manual/trusted-types` now includes an inline warning and a lightweight client-side logger. Expect `[hub-embed]:sdk TRUSTED_TYPES_ABORT` errors plus `[manual.trustedTypes]` info logs reminding you to clear the console before leaving the route. Those messages make it obvious that the harness is intentionally breaking Trusted Types so QA doesn’t confuse the errors with failures on other pages.
+
+### Consent toggle (telemetry)
+
+The home page and every manual harness layout now include a **Consent Controls** section that defaults to “granted.” Flip the radios to simulate a pending CMP decision:
+
+- `Consent granted` immediately calls `consent.grant('host')`, flushing buffered analytics/telemetry events.
+- `Consent pending` calls `consent.revoke()` so the SDK logs `[hub-embed]:consent CONSENT_PENDING` and keeps events in the buffer until you flip back.
+
+Use this toggle to validate consent-dependent telemetry without editing the harness source. Console logs are namespaced under `[demoHost.consent]` so QA can capture state transitions in recordings.
 
 ### Reseeding and parity checks
 

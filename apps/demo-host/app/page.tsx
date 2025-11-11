@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { EmbedHandle } from '@events-hub/embed-sdk';
 import type { PageDoc } from '@events-hub/page-schema';
 import { createDefaultDemoPlan } from '@events-hub/default-plan';
@@ -8,6 +8,8 @@ import { DEFAULT_TENANT, getApiBase, getConfigUrl, getEmbedMode, getEmbedSrc, ge
 import { useDefaultPlan } from '../lib/useDefaultPlan';
 import { DEMO_EMBED_THEME } from '../lib/embed-theme';
 import { createEmbedHandle, loadEmbedModule, type EmbedModule } from '../lib/embed-loader';
+import { SeoInspector } from './components/SeoInspector';
+import { useConsentController } from '../lib/consent';
 
 const DEFAULT_TENANT_ID = DEFAULT_TENANT;
 
@@ -43,6 +45,12 @@ export default function Page() {
     planMode,
     fallbackPlan
   });
+  const { status: consentStatus, setStatus: setConsentStatus } = useConsentController({
+    source: 'demo-host',
+    defaultStatus: 'granted'
+  });
+  const consentFieldsetId = useId();
+  const consentDescriptionId = `${consentFieldsetId}-description`;
   const [embedStatus, setEmbedStatus] = useState<'initializing' | 'ready' | 'error'>('initializing');
   const [embedError, setEmbedError] = useState<string | null>(null);
   const handleRef = useRef<EmbedHandle | null>(null);
@@ -178,6 +186,40 @@ export default function Page() {
         This host demonstrates how to bootstrap the Events Hub embed SDK from a Next.js App Router application.
         Switch between linked and external embed modes by toggling <code>NEXT_PUBLIC_EMBED_MODE</code>.
       </p>
+      <section className="consent-controls" aria-labelledby={`${consentFieldsetId}-legend`}>
+        <h2 id={`${consentFieldsetId}-legend`}>Consent Controls</h2>
+        <p id={consentDescriptionId} className="muted">
+          Demo stack auto-grants consent so telemetry flushes immediately. Flip the toggle to reproduce buffered events and{' '}
+          <code>[hub-embed]:consent</code> warnings before re-granting.
+        </p>
+        <div role="radiogroup" aria-labelledby={`${consentFieldsetId}-legend`} aria-describedby={consentDescriptionId} className="consent-controls__toggles">
+          <label>
+            <input
+              type="radio"
+              name={`consent-${consentFieldsetId}`}
+              value="granted"
+              checked={consentStatus === 'granted'}
+              onChange={() => setConsentStatus('granted')}
+            />
+            Consent granted
+          </label>
+          <label>
+            <input
+              type="radio"
+              name={`consent-${consentFieldsetId}`}
+              value="pending"
+              checked={consentStatus === 'pending'}
+              onChange={() => setConsentStatus('pending')}
+            />
+            Consent pending
+          </label>
+        </div>
+        <p className="status" role="status" data-consent-status={consentStatus}>
+          {consentStatus === 'granted'
+            ? 'Consent granted — analytics + telemetry drain immediately.'
+            : 'Consent pending — SDK buffers events until consent is granted.'}
+        </p>
+      </section>
       <div
         ref={containerRef}
         data-embed-container=""
@@ -224,6 +266,7 @@ export default function Page() {
         <dt>Plan hash</dt>
         <dd>{planHash}</dd>
       </dl>
+      <SeoInspector tenantId={DEFAULT_TENANT_ID} />
     </main>
   );
 }

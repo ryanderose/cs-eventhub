@@ -54,6 +54,36 @@ vi.mock('@events-hub/embed-sdk/dist/index.esm.js', () => ({
 describe('Next.js embed host page', () => {
   const fetchMock = vi.fn();
 
+  function queueFragmentSuccesses(times = 2) {
+    for (let index = 0; index < times; index += 1) {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          html: '<div>fragment</div>',
+          css: '',
+          cssHash: 'fragment-hash',
+          jsonLd: '{"@id":"fragment"}',
+          parity: { diffPercent: 0, withinThreshold: true, idsMatch: true },
+          noindex: false
+        })
+      } as Response);
+    }
+  }
+
+  function expectPlanRequests(count: number) {
+    const planCalls = fetchMock.mock.calls.filter(([url]) => {
+      if (typeof url === 'string') {
+        return url.includes('/api/default-plan');
+      }
+      if (url && typeof url === 'object' && 'url' in url) {
+        return (url as Request).url.includes('/api/default-plan');
+      }
+      return false;
+    });
+    expect(planCalls).toHaveLength(count);
+  }
+
   function createPlan(overrides?: Partial<PageDoc>): PageDoc {
     const now = new Date().toISOString();
     return {
@@ -172,6 +202,8 @@ describe('Next.js embed host page', () => {
       })
     } as Response);
 
+    queueFragmentSuccesses();
+
     render(<Page />);
 
     await waitFor(() => {
@@ -226,6 +258,8 @@ describe('Next.js embed host page', () => {
       })
     } as Response);
 
+    queueFragmentSuccesses();
+
     render(<Page />);
 
     await waitFor(() => {
@@ -243,10 +277,12 @@ describe('Next.js embed host page', () => {
     fetchMock.mockRejectedValueOnce(new Error('network down'));
     fetchMock.mockRejectedValueOnce(new Error('still down'));
 
+    queueFragmentSuccesses();
+
     render(<Page />);
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expectPlanRequests(2);
     });
 
     await waitFor(() => {

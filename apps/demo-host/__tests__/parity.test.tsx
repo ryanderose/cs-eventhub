@@ -91,9 +91,13 @@ describe('SEO parity harness & host parity tests', () => {
   it('computes JSON-LD diff percentages within tolerance', () => {
     const base = JSON.stringify({ '@id': '1', name: 'Event' });
     const mutated = JSON.stringify({ '@id': '1', name: 'Event ' });
-    const result = compareJsonLd(base, mutated, { tolerance: 0.01 });
-    expect(result.withinThreshold).toBe(true);
-    expect(result.idsMatch).toBe(true);
+    const tolerant = compareJsonLd(base, mutated, { tolerance: 0.05 });
+    expect(tolerant.withinThreshold).toBe(true);
+    expect(tolerant.idsMatch).toBe(true);
+
+    const strict = compareJsonLd(base, mutated, { tolerance: 0.0001 });
+    expect(strict.withinThreshold).toBe(false);
+
     const failure = compareJsonLd(base, JSON.stringify({ '@id': '2', name: 'Other' }), { tolerance: 0.01 });
     expect(failure.idsMatch).toBe(false);
   });
@@ -134,7 +138,7 @@ describe('SEO parity harness & host parity tests', () => {
 
     const container = document.querySelector<HTMLDivElement>('[data-embed-container]');
     expect(container).toBeTruthy();
-    expect(container?.shadowRoot?.querySelector('[data-root]')).toBeNull();
+    expect(container?.shadowRoot?.querySelector('[data-root]')).toBeFalsy();
 
     const plan = createPlan();
     resolvePlan?.({

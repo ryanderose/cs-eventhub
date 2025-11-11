@@ -6,7 +6,11 @@ import { Navigation } from './components/Navigation';
 
 export const metadata: Metadata = {
   title: 'Events Hub Demo Host',
-  description: 'Preview the Events Hub embed SDK inside a Next.js App Router host.'
+  description: 'Preview the Events Hub embed SDK inside a Next.js App Router host.',
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png'
+  }
 };
 
 export const revalidate = defaultRevalidateSeconds;
