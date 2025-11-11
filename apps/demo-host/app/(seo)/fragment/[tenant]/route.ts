@@ -9,6 +9,10 @@ type FragmentPayload = {
   html: string;
   css?: string;
   styles?: { css?: string };
+  cssHash?: string;
+  jsonLd?: string;
+  parity?: { diffPercent: number; withinThreshold: boolean; idsMatch: boolean };
+  noindex?: boolean;
 };
 
 async function hashCss(css: string): Promise<string> {
@@ -51,12 +55,18 @@ export async function GET(request: Request, { params }: { params: { tenant: stri
   const payload = (await upstream.json()) as FragmentPayload;
   const css = payload.css ?? payload.styles?.css ?? '';
   const cssHash = css ? await hashCss(css) : '';
+  const parity = payload.parity ?? null;
+  const jsonLd = payload.jsonLd ?? '';
+  const shouldNoIndex = payload.noindex === true || upstream.headers.get('x-robots-tag') === 'noindex';
 
   const response = NextResponse.json(
     {
       html: payload.html,
       css,
-      cssHash
+      cssHash,
+      jsonLd,
+      parity,
+      noindex: shouldNoIndex
     },
     {
       status: 200
@@ -68,6 +78,9 @@ export async function GET(request: Request, { params }: { params: { tenant: stri
   response.headers.set('Vary', 'Accept, Accept-Encoding');
   if (cssHash) {
     response.headers.set('X-Events-Hub-CSS-Hash', cssHash);
+  }
+  if (shouldNoIndex) {
+    response.headers.set('X-Robots-Tag', 'noindex');
   }
 
   return response;

@@ -78,11 +78,11 @@
 
 **Success Criteria**  
 **Automated**
-- [ ] Admin lint/tests: `pnpm -w test --filter=admin`
-- [ ] SEO parity tests: `pnpm -w test --filter=demo-host`
-- [ ] Bundle budgets/CI: `pnpm -w budgets:embed` invoked in CI and fails on Phase-A exceedance.
-- [ ] Accessibility: `pnpm -w check:a11y` (overlays inside ShadowRoot).
-- [ ] Supply chain: `pnpm -w security:provenance`
+- [x] Admin lint/tests: `pnpm -w test --filter=admin`
+- [x] SEO parity tests: `pnpm -w test --filter=demo-host`
+- [x] Bundle budgets/CI: `pnpm -w budgets:embed` invoked in CI and fails on Phase-A exceedance.
+- [x] Accessibility: `pnpm -w check:a11y` (overlays inside ShadowRoot).
+- [x] Supply chain: `pnpm -w security:provenance`
 **Manual**
 - [ ] Attempt to generate snippet with tampered manifest; UI blocks copy with explicit drift message.
 - [ ] Review JSON-LD diff report (<1% delta) for list and detail routes via demo host Inspector.

@@ -25,6 +25,10 @@
       "dependsOn": ["build"],
       "outputs": ["bundle-reports/**"]
     },
+    "budgets:embed": {
+      "dependsOn": ["build"],
+      "outputs": ["bundle-reports/**"]
+    },
     "security:sbom": {
       "dependsOn": ["build"],
       "outputs": [".sbom/**"]

@@ -86,3 +86,7 @@ Update `apps/api/.env.local` or the corresponding Vercel env vars to point to be
 4. Deploy `apps/cdn` to make the assets available at `/hub-embed@<version>/…` with immutable caching headers and refresh `hub-embed@latest` for clients that track the stable channel.
 
 Consumers can choose between linked mode (local bundle) and external mode (published CDN bundle) by updating their `.env` files accordingly.
+
+## Bundle budget enforcement
+
+Run `pnpm -w budgets:embed` (or rely on the CI step of the same name) after publishing the SDK. This command reads `apps/cdn/public/hub-embed@latest/manifest.json`, evaluates the Phase-A (hard gate) and Phase-B (target) gzip sizes, writes `bundle-reports/embed-budgets.json`, and fails when the Phase-A ceiling is exceeded. Phase-B overruns log a warning so we can track progress without blocking releases until the tighter gate goes live.

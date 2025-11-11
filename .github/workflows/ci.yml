@@ -23,6 +23,7 @@ jobs:
       - run: pnpm -w build
       - run: pnpm -w test
       - run: pnpm -w check:bundles
+      - run: pnpm -w budgets:embed
       - run: pnpm -w check:a11y || true
       - run: pnpm -w security:sbom
       - run: pnpm -w security:provenance
