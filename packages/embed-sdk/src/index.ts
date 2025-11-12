@@ -297,15 +297,37 @@ function setupLazyHydration(container: HTMLElement, callback: () => void, logger
     callback();
     return null;
   }
+  const viewportHeight = window.innerHeight || document.documentElement?.clientHeight || 0;
+  const rect = container.getBoundingClientRect();
+  const lazyMargin = viewportHeight * 1.5;
+  logger.info('Lazy mount observer registered', {
+    top: Number(rect.top.toFixed(2)),
+    bottom: Number(rect.bottom.toFixed(2)),
+    height: Number(rect.height.toFixed(2)),
+    viewport: viewportHeight,
+    margin: lazyMargin
+  });
+  const isWithinLazyMargin = (bounds: DOMRect) => bounds.top <= viewportHeight + lazyMargin && bounds.bottom >= -lazyMargin;
+  if (isWithinLazyMargin(rect)) {
+    logger.info('Lazy mount threshold already met on load, hydrating embed immediately.');
+    callback();
+    return null;
+  }
   const observer = new IntersectionObserver(
     (entries) => {
-      const seen = entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0);
+      const seen = entries.some((entry) => {
+        if (entry.isIntersecting || entry.intersectionRatio > 0) {
+          return true;
+        }
+        return isWithinLazyMargin(entry.boundingClientRect);
+      });
       if (seen) {
         observer.disconnect();
+        logger.info('Lazy mount threshold met, hydrating embed.');
         callback();
       }
     },
-    { rootMargin: '150%' }
+    { rootMargin: '0px' }
   );
   observer.observe(container);
   logger.info('Lazy mount enabled — hydration deferred until container becomes visible.');
@@ -397,6 +419,9 @@ export function create(config: EmbedConfig): EmbedHandle {
 
   let currentPlan: PageDoc | null = config.initialPlan ?? null;
   let destroyed = false;
+  let hasHydratedOnce = false;
+  let lazyReady = !config.lazy;
+  let pendingHydration: { plan: PageDoc; pushState: boolean } | null = null;
 
   function hydratePlan(plan: PageDoc, { pushState = true }: { pushState?: boolean } = {}) {
     if (destroyed) return;
@@ -415,10 +440,23 @@ export function create(config: EmbedConfig): EmbedHandle {
       router.setPlan(plan, { replace: !pushState });
       emitter.emit('plan:hydrate', { plan });
       currentPlan = plan;
+      hasHydratedOnce = true;
     } catch (error) {
       emitter.emit('plan:error', { error: error as Error });
       throw error;
     }
+  }
+
+  function scheduleHydration(plan: PageDoc, options: { pushState?: boolean } = {}) {
+    if (destroyed) return;
+    currentPlan = plan;
+    const pushState = hasHydratedOnce ? options.pushState ?? true : false;
+    if (lazyReady) {
+      pendingHydration = null;
+      hydratePlan(plan, { pushState });
+      return;
+    }
+    pendingHydration = { plan, pushState };
   }
 
   if (aliasAccessed) {
@@ -426,23 +464,41 @@ export function create(config: EmbedConfig): EmbedHandle {
     aliasAccessed = false;
   }
 
-  const lazyController = config.lazy ? setupLazyHydration(container, () => currentPlan && hydratePlan(currentPlan, { pushState: false }), logger) : null;
+  const lazyController = config.lazy
+    ? setupLazyHydration(
+        container,
+        () => {
+          if (destroyed) return;
+          lazyReady = true;
+          if (pendingHydration) {
+            const nextHydration = pendingHydration;
+            pendingHydration = null;
+            hydratePlan(nextHydration.plan, { pushState: nextHydration.pushState });
+            return;
+          }
+          if (currentPlan) {
+            hydratePlan(currentPlan, { pushState: false });
+          }
+        },
+        logger
+      )
+    : null;
 
   queueMicrotask(() => {
     emitter.emit('ready', { tenantId: config.tenantId, embedId });
     if (!config.lazy && currentPlan) {
-      hydratePlan(currentPlan, { pushState: false });
+      scheduleHydration(currentPlan, { pushState: false });
     }
   });
 
   const handle: EmbedHandle = {
     async hydrateNext({ plan, pushState = true }) {
-      hydratePlan(plan, { pushState });
+      scheduleHydration(plan, { pushState });
     },
     async refresh(next) {
       const plan = next?.plan ?? currentPlan;
       if (!plan) return;
-      hydratePlan(plan, { pushState: true });
+      scheduleHydration(plan, { pushState: true });
     },
     navigate(target, options) {
       router.navigate(target, options);
@@ -453,6 +509,7 @@ export function create(config: EmbedConfig): EmbedHandle {
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      pendingHydration = null;
       lazyController?.disconnect();
       router.destroy();
       if (useShadowDom) {

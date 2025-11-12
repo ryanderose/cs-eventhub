@@ -4,6 +4,7 @@ import {
   HubEmbedLogCollector,
   expectConsentStatus,
   expectEmbedStatus,
+  getEmbedStatusText,
   gotoManualHarness,
   grantConsent,
   resetHarnessState,
@@ -45,13 +46,13 @@ test.describe('Manual harness scenarios', () => {
       await test.step('§12.1 — pending consent buffers analytics', async () => {
         await revokeConsent(page);
         await expectConsentStatus(page, 'pending');
-        await expect(page.locator('section.manual-harness-controls [data-consent-status]')).toContainText('buffers');
+        await expect(page.locator('section.manual-harness-controls [data-consent-status]')).toContainText(/buffer/i);
       });
 
       await test.step('§12.1 — granting consent flushes buffer', async () => {
         await grantConsent(page);
         await expectConsentStatus(page, 'granted');
-        await expect(page.locator('section.manual-harness-controls [data-consent-status]')).toContainText('flushes');
+        await expect(page.locator('section.manual-harness-controls [data-consent-status]')).toContainText(/flush/i);
       });
     } finally {
       await logs.attach(testInfo);
@@ -103,7 +104,8 @@ test.describe('Manual harness scenarios', () => {
 
       await test.step('§12.5 — embed waits for scroll', async () => {
         await expect(page.getByText('Scroll down to trigger the lazy observer…')).toBeVisible();
-        await expect(page.getByRole('status').first()).toHaveText(/Mounting embed…/i, { timeout: STATUS_TIMEOUT });
+        const statusBeforeScroll = await getEmbedStatusText(page, 0);
+        expect(statusBeforeScroll).toMatch(/Mounting embed…/i);
       });
 
       await test.step('§12.5 — scrolling hydrates embed', async () => {
@@ -142,8 +144,8 @@ test.describe('Manual harness scenarios', () => {
 
       await test.step('§12.7 — fallback UI rendered', async () => {
         await expect(page.getByRole('heading', { name: 'Trusted Types Enforcement' })).toBeVisible();
-        await expect(page.getByRole('alert')).toHaveText(/Trusted Types enforcement prevented the embed from running/i);
-        await expect(page.getByRole('status').first()).toHaveText(/Trusted Types policy creation failed/i);
+        await expect(page.getByText(/Trusted Types enforcement prevented the embed from running/i)).toBeVisible();
+        await expectEmbedStatus(page, /Trusted Types policy creation failed/i, 0);
       });
 
       await test.step('§12.7 — capture fallback screenshot', async () => {

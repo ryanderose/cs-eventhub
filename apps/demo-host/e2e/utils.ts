@@ -102,6 +102,17 @@ export async function expectEmbedStatus(page: Page, matcher: RegExp | string, in
   await expect(target).toHaveText(matcher, { timeout });
 }
 
+export async function getEmbedStatusText(page: Page, index = 0): Promise<string> {
+  return page.evaluate(
+    ({ selector, targetIndex }) => {
+      const nodes = document.querySelectorAll<HTMLElement>(selector);
+      const node = nodes.item(targetIndex);
+      return node?.textContent ?? '';
+    },
+    { selector: '[data-embed-status]', targetIndex: index }
+  );
+}
+
 export async function resetHarnessState(page: Page): Promise<void> {
   await page.evaluate(() => {
     try {

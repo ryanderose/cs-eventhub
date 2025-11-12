@@ -72,7 +72,7 @@ test.describe('Embed acceptance scenarios @acceptance', () => {
       });
 
       await test.step('§12.5 — scrolling into view hydrates embed', async () => {
-        await page.mouse.wheel(0, 2000);
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
         await expectEmbedStatus(page, /Embed ready/i, 0);
         await page.getByRole('button', { name: 'Reset filters' }).first().click();
         await expect

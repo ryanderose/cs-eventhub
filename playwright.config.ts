@@ -7,6 +7,9 @@ if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
 const CI = process.env.CI === 'true';
 const NEXT_DEV_ENV = 'CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true NEXT_USE_POLLING=true';
 const NEXT_DEV_HOST = 'HOST=0.0.0.0';
+const DEMO_PORT = Number.parseInt(process.env.PLAYWRIGHT_DEMO_PORT ?? '3000', 10);
+const ADMIN_PORT = Number.parseInt(process.env.PLAYWRIGHT_ADMIN_PORT ?? '3001', 10);
+const API_PORT = Number.parseInt(process.env.PLAYWRIGHT_API_PORT ?? '4000', 10);
 const previewBrowserName = process.env.PLAYWRIGHT_PREVIEW_BROWSER ?? 'chromium';
 const previewDevice =
   previewBrowserName === 'firefox'
@@ -60,11 +63,11 @@ export default defineConfig({
       testMatch: ['**/projects/demo/**/*.spec.ts', 'apps/demo-host/e2e/**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3000'
+        baseURL: `http://localhost:${DEMO_PORT}`
       },
       webServer: {
-        command: `${NEXT_DEV_ENV} PORT=3000 ${NEXT_DEV_HOST} pnpm --filter @events-hub/demo-host dev`,
-        url: 'http://localhost:3000',
+        command: `${NEXT_DEV_ENV} PORT=${DEMO_PORT} ${NEXT_DEV_HOST} pnpm --filter @events-hub/demo-host dev`,
+        url: `http://localhost:${DEMO_PORT}`,
         reuseExistingServer: true,
         timeout: 120_000
       }
@@ -75,7 +78,7 @@ export default defineConfig({
       testMatch: ['apps/demo-host/e2e/**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3000'
+        baseURL: `http://localhost:${DEMO_PORT}`
       }
     },
     {
@@ -84,11 +87,11 @@ export default defineConfig({
       testMatch: ['**/projects/admin/**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3001'
+        baseURL: `http://localhost:${ADMIN_PORT}`
       },
       webServer: {
-        command: `${NEXT_DEV_ENV} PORT=3001 ${NEXT_DEV_HOST} pnpm --filter @events-hub/admin dev`,
-        url: 'http://localhost:3001',
+        command: `${NEXT_DEV_ENV} PORT=${ADMIN_PORT} ${NEXT_DEV_HOST} pnpm --filter @events-hub/admin dev`,
+        url: `http://localhost:${ADMIN_PORT}`,
         reuseExistingServer: true,
         timeout: 120_000
       }
@@ -98,11 +101,11 @@ export default defineConfig({
       grepInvert: /@preview/,
       testMatch: ['**/projects/api/**/*.spec.ts'],
       use: {
-        baseURL: 'http://localhost:4000'
+        baseURL: `http://localhost:${API_PORT}`
       },
       webServer: {
-        command: `PORT=4000 ${NEXT_DEV_HOST} pnpm --filter @events-hub/api dev`,
-        url: 'http://localhost:4000/health',
+        command: `PORT=${API_PORT} ${NEXT_DEV_HOST} pnpm --filter @events-hub/api dev`,
+        url: `http://localhost:${API_PORT}/health`,
         reuseExistingServer: true,
         timeout: 120_000
       }
