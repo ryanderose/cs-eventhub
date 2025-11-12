@@ -12,7 +12,7 @@ export function ManualHarnessControls() {
     const queryValue = searchParams.get('consent');
     return queryValue === 'pending' ? 'pending' : 'granted';
   }, [searchParams]);
-  const { status, setStatus } = useConsentController({ source: 'manual-harness', defaultStatus });
+  const { status, setStatus } = useConsentController({ source: 'user', defaultStatus });
   const isGranted = status === 'granted';
 
   return (

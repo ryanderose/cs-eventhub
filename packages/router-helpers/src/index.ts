@@ -45,18 +45,35 @@ type BrotliModule = {
 let zstd: ZstdModule | null | undefined;
 let brotli: BrotliModule | null | undefined;
 
+function replaceAllLiteral(value: string, search: string, replacement: string): string {
+  if (!value.length || search === replacement || !value.includes(search)) {
+    return value;
+  }
+  return value.split(search).join(replacement);
+}
+
+function trimTrailingChar(value: string, charCode: number): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === charCode) {
+    end--;
+  }
+  return end === value.length ? value : value.slice(0, end);
+}
+
 function toBase64UrlBuffer(buffer: Uint8Array) {
-  return Buffer.from(buffer)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  const base64 = Buffer.from(buffer).toString('base64');
+  const swapped = replaceAllLiteral(replaceAllLiteral(base64, '+', '-'), '/', '_');
+  return trimTrailingChar(swapped, '='.charCodeAt(0));
 }
 
 function fromBase64UrlBuffer(payload: string): Buffer {
-  const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized + '==='.slice((normalized.length + 3) % 4);
-  return Buffer.from(padded, 'base64');
+  const normalizedPayload = payload.trim();
+  let normalized = replaceAllLiteral(replaceAllLiteral(normalizedPayload, '-', '+'), '_', '/');
+  const remainder = normalized.length % 4;
+  if (remainder > 0) {
+    normalized = normalized.padEnd(normalized.length + (4 - remainder), '=');
+  }
+  return Buffer.from(normalized, 'base64');
 }
 
 function loadZstd(): ZstdModule | null {
@@ -177,7 +194,24 @@ export function resolvePlanFromUrl(searchParams: URLSearchParams): string | unde
 }
 
 export function canonicalizePath(path: string): string {
-  return path.replace(/\/+/, '/');
+  if (!path.length) {
+    return path;
+  }
+  let result = '';
+  let previousWasSlash = false;
+  for (let index = 0; index < path.length; index += 1) {
+    const char = path[index];
+    if (char === '/') {
+      if (previousWasSlash) {
+        continue;
+      }
+      previousWasSlash = true;
+    } else {
+      previousWasSlash = false;
+    }
+    result += char;
+  }
+  return result;
 }
 
 const DEFAULT_BASE_PATH = '/events';
@@ -190,10 +224,17 @@ function ensureLeadingSlash(path: string): string {
 }
 
 function stripTrailingSlash(path: string): string {
-  if (path === '/') {
+  if (path === '/' || path.length === 0) {
+    return path || '/';
+  }
+  let end = path.length;
+  while (end > 0 && path.charCodeAt(end - 1) === 47) {
+    end--;
+  }
+  if (end === path.length) {
     return path;
   }
-  return path.replace(/\/+$/, '');
+  return path.slice(0, end || 1);
 }
 
 function normalizePathname(pathname: string): string {
@@ -252,7 +293,7 @@ export function resolveRouteTemplates(basePath?: string, routes?: Partial<RouteT
     detailTemplate = normalizePathname(routes.detail);
   } else {
     const basePrefix = normalizedBase === '/' ? '' : normalizedBase;
-    detailTemplate = `${basePrefix}/:slug`.replace(/\/+/, '/');
+    detailTemplate = canonicalizePath(`${basePrefix}/:slug`);
     if (!detailTemplate.startsWith('/')) {
       detailTemplate = `/${detailTemplate}`;
     }

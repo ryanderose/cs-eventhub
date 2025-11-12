@@ -1,13 +1,21 @@
+import type { Route } from 'next';
 import Link from 'next/link';
+import type { UrlObject } from 'url';
 
-const pages = [
+type ManualPage = {
+  href: Route | UrlObject;
+  title: string;
+  summary: string;
+};
+
+const PAGES: ReadonlyArray<ManualPage> = [
   {
     href: '/manual/routing',
     title: 'Query & Hash Routing',
     summary: 'Validate query/hash persistence and URL mutation without rewriting.'
   },
   {
-    href: '/events',
+    href: { pathname: '/events' },
     title: 'Path Routing Harness',
     summary: 'Mounts at /events to exercise basePath-aware routing, deep links, and hard reloads.'
   },
@@ -33,6 +41,13 @@ const pages = [
   }
 ];
 
+function resolveHrefPath(href: ManualPage['href']): string {
+  if (typeof href === 'string') {
+    return href;
+  }
+  return href.pathname ?? '/';
+}
+
 export default function ManualIndexPage() {
   return (
     <main>
@@ -43,17 +58,20 @@ export default function ManualIndexPage() {
         with the index below.
       </p>
       <div className="manual-grid">
-        {pages.map((page) => (
-          <article key={page.href}>
-            <h2>
-              <Link href={page.href}>{page.title}</Link>
-            </h2>
-            <p>{page.summary}</p>
-            <Link href={page.href} className="manual-link">
-              Open {page.title}
-            </Link>
-          </article>
-        ))}
+        {PAGES.map((page) => {
+          const hrefPath = resolveHrefPath(page.href);
+          return (
+            <article key={hrefPath}>
+              <h2>
+                <Link href={page.href}>{page.title}</Link>
+              </h2>
+              <p>{page.summary}</p>
+              <Link href={page.href} className="manual-link">
+                Open {page.title}
+              </Link>
+            </article>
+          );
+        })}
       </div>
     </main>
   );

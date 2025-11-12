@@ -1,5 +1,22 @@
 const ALLOWED_TAGS = new Set(['b', 'i', 'em', 'strong', 'a', 'p', 'ul', 'ol', 'li', 'span']);
 const URL_ATTRS = new Set(['href']);
+const SAFE_URL_PROTOCOLS = ['http://', 'https://', 'mailto:', 'tel:'];
+const SAFE_RELATIVE_PREFIXES = ['/', './', '../', '#', '?'];
+
+function resolveSafeHref(rawHref: string): string {
+  const normalizedHref = rawHref.trim();
+  if (!normalizedHref) {
+    return '#';
+  }
+  const lowerHref = normalizedHref.toLowerCase();
+  if (SAFE_URL_PROTOCOLS.some((protocol) => lowerHref.startsWith(protocol))) {
+    return normalizedHref;
+  }
+  if (SAFE_RELATIVE_PREFIXES.some((prefix) => normalizedHref.startsWith(prefix))) {
+    return normalizedHref;
+  }
+  return '#';
+}
 
 export function sanitizeHtml(input: string): string {
   return input.replace(/<([^>]+)>/g, (match, tag) => {
@@ -19,11 +36,7 @@ export function sanitizeHtml(input: string): string {
 
     if (normalizedTag === 'a') {
       return match.replace(/href="([^"]*)"/gi, (_, href) => {
-        const normalizedHref = href.trim();
-        if (normalizedHref.toLowerCase().startsWith('javascript:')) {
-          return 'href="#"';
-        }
-        return `href="${normalizedHref}"`;
+        return `href="${resolveSafeHref(href)}"`;
       });
     }
 

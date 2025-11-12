@@ -46,7 +46,7 @@ export default function Page() {
     fallbackPlan
   });
   const { status: consentStatus, setStatus: setConsentStatus } = useConsentController({
-    source: 'demo-host',
+    source: 'host',
     defaultStatus: 'granted'
   });
   const consentFieldsetId = useId();

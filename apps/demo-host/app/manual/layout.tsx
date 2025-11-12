@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { DemoPlanProvider } from '../../lib/useDemoPlan';
 import { DEFAULT_TENANT } from '../../lib/env';
 import { PlanStatusBanner } from '../components/PlanStatusBanner';
@@ -8,7 +8,15 @@ export default function ManualLayout({ children }: { children: ReactNode }) {
   return (
     <DemoPlanProvider tenantId={DEFAULT_TENANT}>
       <PlanStatusBanner />
-      <ManualHarnessControls />
+      <Suspense
+        fallback={
+          <section className="manual-harness-controls" aria-busy="true" aria-live="polite">
+            Loading manual harness controls…
+          </section>
+        }
+      >
+        <ManualHarnessControls />
+      </Suspense>
       {children}
     </DemoPlanProvider>
   );

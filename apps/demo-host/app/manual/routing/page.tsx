@@ -12,7 +12,7 @@ export default function RoutingHarnessPage() {
       <p>
         Use these embeds to confirm URL persistence when <code>historyMode</code> is set to <code>query</code> or <code>hash</code>. Trigger plan
         changes, navigate cards, then copy/reload the URL to verify state restoration. For full path-based routing coverage, head to{' '}
-        <Link href="/events">/events</Link>.
+        <Link href={{ pathname: '/events' }}>/events</Link>.
       </p>
 
       <section>

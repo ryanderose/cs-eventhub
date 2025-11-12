@@ -531,4 +531,4 @@ installGlobal(hubEmbedApi);
 export { consentApi as consent };
 export { baseTokens } from './theme';
 export type { PartnerAdapter } from './partners';
-export type { ConsentStatus } from './consent';
+export type { ConsentStatus, ConsentSource } from './consent';
