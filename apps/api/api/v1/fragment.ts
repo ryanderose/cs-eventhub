@@ -1,3 +1,5 @@
+import { compareJsonLd, type JsonLdParityResult } from '../../../demo-host/lib/seoParity';
+
 export const config = { runtime: 'edge' };
 
 type FragmentCspOptions = {
@@ -45,13 +47,88 @@ function extractTenantId(url: URL): string {
   );
 }
 
+type JsonLdOptions = {
+  view?: 'list' | 'detail';
+  slug?: string | null;
+};
+
+function sanitizeSlug(slug?: string | null): string {
+  if (!slug) return 'sample-event';
+  const normalized = slug
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized || 'sample-event';
+}
+
+function buildJsonLdPayload(tenantId: string, options: JsonLdOptions = {}) {
+  const baseId = `https://events.example.com/${tenantId}`;
+  if (options.view === 'detail') {
+    const slug = sanitizeSlug(options.slug);
+    const eventId = `${baseId}/events/${slug}`;
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Event',
+      '@id': eventId,
+      name: `Sample detail event (${slug})`,
+      url: eventId,
+      startDate: new Date().toISOString(),
+      location: {
+        '@type': 'Place',
+        name: 'Demo Venue',
+        address: '123 Demo St, Demo City'
+      }
+    };
+  }
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `${tenantId} Events`,
+    itemListElement: [1, 2, 3].map((rank) => ({
+      '@type': 'ListItem',
+      position: rank,
+      '@id': `${baseId}#${rank}`,
+      item: {
+        '@type': 'Event',
+        name: `Sample Event ${rank}`,
+        url: `${baseId}/events/${rank}`
+      }
+    }))
+  };
+}
+
+function shouldNoIndex(url: URL, request: Request): boolean {
+  if (url.searchParams.get('view') === 'ai' || url.searchParams.get('ai') === '1') {
+    return true;
+  }
+  const header = request.headers.get('x-embed-config');
+  return Boolean(header && header.toLowerCase().includes('ai'));
+}
+
 export default async function handler(request: Request): Promise<Response> {
   if (request.method !== 'GET') {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  const tenantId = extractTenantId(new URL(request.url));
+  const url = new URL(request.url);
+  const tenantId = extractTenantId(url);
+  const viewParam = (url.searchParams.get('view') ?? 'list').toLowerCase();
+  const view: 'list' | 'detail' = viewParam === 'detail' ? 'detail' : 'list';
+  const slugParam = url.searchParams.get('slug');
   const html = `<div data-tenant="${tenantId}">Fragment placeholder</div>`;
+
+  const jsonLdObject = buildJsonLdPayload(tenantId, { view, slug: slugParam });
+  const jsonLd = JSON.stringify(jsonLdObject);
+  const parity = compareJsonLd(jsonLd, jsonLd, { tolerance: 0.01 });
+  if (!parity.withinThreshold || !parity.idsMatch) {
+    return new Response(JSON.stringify({ error: 'jsonld_parity_failed', parity }), {
+      status: 422,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' }
+    });
+  }
+  const noindex = shouldNoIndex(url, request);
 
   // Support JSON responses when explicitly requested via Accept header.
   // This allows hosts (apps/demo-host) to proxy fragments for SEO easily
@@ -61,7 +138,29 @@ export default async function handler(request: Request): Promise<Response> {
     const headers = new Headers({ 'Content-Type': 'application/json; charset=utf-8' });
     headers.set('Cache-Control', 's-maxage=600, stale-while-revalidate=120');
     headers.set('X-Fragment-Tenant', tenantId);
-    return new Response(JSON.stringify({ html, styles: { css: '' } }), {
+    if (noindex) {
+      headers.set('X-Robots-Tag', 'noindex');
+    }
+    const payload = {
+      html,
+      styles: { css: '' },
+      cssHash: '',
+      jsonLd,
+      parity,
+      noindex,
+      view,
+      slug: view === 'detail' ? sanitizeSlug(slugParam) : undefined
+    } satisfies {
+      html: string;
+      styles: { css: string };
+      cssHash: string;
+      jsonLd: string;
+      parity: JsonLdParityResult;
+      noindex: boolean;
+      view: 'list' | 'detail';
+      slug?: string;
+    };
+    return new Response(JSON.stringify(payload), {
       status: 200,
       headers
     });
@@ -70,5 +169,8 @@ export default async function handler(request: Request): Promise<Response> {
   const response = fragmentResponse(html, { scriptSrc: [], styleSrc: [] });
   response.headers.set('Cache-Control', 's-maxage=600, stale-while-revalidate=120');
   response.headers.set('X-Fragment-Tenant', tenantId);
+  if (noindex) {
+    response.headers.set('X-Robots-Tag', 'noindex');
+  }
   return response;
 }

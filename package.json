@@ -14,6 +14,8 @@
     "publish:embed": "tsx scripts/publish-embed.ts",
     "check:a11y": "./scripts/turbo-run.sh run check:a11y",
     "check:bundles": "./scripts/turbo-run.sh run check:bundles",
+    "budgets:embed": "tsx scripts/check-embed-budgets.ts",
+    "acceptance": "concurrently --kill-others --success first --names stack,tests --prefix-colors green,magenta \"pnpm dev:stack\" \"wait-on http://localhost:3000 http://localhost:3001 http://localhost:4000/health && pnpm playwright test --project=acceptance-local --grep @acceptance\"",
     "security:sbom": "./scripts/turbo-run.sh run security:sbom",
     "security:provenance": "./scripts/turbo-run.sh run security:provenance",
     "e2e:serve": "concurrently --kill-others --names demo,admin,api --prefix-colors magenta,blue,cyan \"pnpm run e2e:serve:demo\" \"pnpm run e2e:serve:admin\" \"pnpm run e2e:serve:api\"",
@@ -23,7 +25,7 @@
     "test:e2e:local": "node ./scripts/run-e2e.mjs local",
     "test:e2e:preview": "pnpm playwright test --project=demo-hosts-preview --project=admin-preview --project=api-preview --grep @preview",
     "test:parity": "pnpm playwright test --project=demo-hosts-preview --grep @parity",
-    "ci": "pnpm -w build && pnpm -w test && pnpm -w lint && pnpm -w check:bundles"
+    "ci": "pnpm -w build && pnpm -w test && pnpm -w lint && pnpm -w check:bundles && pnpm -w budgets:embed && pnpm acceptance"
   },
   "devDependencies": {
     "@ladle/react": "3.1.0",
@@ -49,6 +51,7 @@
     "typescript-language-server": "^5.1.0",
     "vitest": "1.5.2",
     "vscode-langservers-extracted": "^4.10.0",
+    "wait-on": "^7.2.0",
     "yaml-language-server": "^1.19.2"
   }
 }

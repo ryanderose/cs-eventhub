@@ -16,7 +16,7 @@ type UseDefaultPlanOptions = {
   fallbackPlan: PageDoc;
 };
 
-type DefaultPlanStatus = 'loading' | 'ready' | 'fallback' | 'disabled';
+export type DefaultPlanStatus = 'loading' | 'ready' | 'fallback' | 'disabled';
 export type DefaultPlanOrigin = 'fallback' | 'seeded' | 'stored';
 
 type UseDefaultPlanState = {

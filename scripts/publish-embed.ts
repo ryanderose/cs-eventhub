@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { access, cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDir, '..');
@@ -132,9 +133,25 @@ function computeIntegrity(buffer: Buffer): string {
   return `sha384-${hash.digest('base64')}`;
 }
 
+type CollectedAsset = {
+  filename: string;
+  integrity: string;
+  size: number;
+  gzipSize: number;
+  kind: 'esm' | 'umd' | 'css' | 'asset';
+  entry: boolean;
+};
+
+function detectAssetKind(filename: string): CollectedAsset['kind'] {
+  if (filename.endsWith('.esm.js')) return 'esm';
+  if (filename.endsWith('.umd.js')) return 'umd';
+  if (filename.endsWith('.css')) return 'css';
+  return 'asset';
+}
+
 async function collectAssets(dir: string) {
   const entries = await readdir(dir);
-  const manifestEntries: Array<{ filename: string; integrity: string; size: number }> = [];
+  const manifestEntries: CollectedAsset[] = [];
 
   for (const entry of entries) {
     const filePath = path.join(dir, entry);
@@ -142,7 +159,16 @@ async function collectAssets(dir: string) {
     if (stats.isDirectory()) continue;
     if (!/\.(?:js|css)$/u.test(entry)) continue;
     const buffer = await readFile(filePath);
-    manifestEntries.push({ filename: entry, integrity: computeIntegrity(buffer), size: stats.size });
+    const gzipSize = gzipSync(buffer).length;
+    const kind = detectAssetKind(entry);
+    manifestEntries.push({
+      filename: entry,
+      integrity: computeIntegrity(buffer),
+      size: stats.size,
+      gzipSize,
+      kind,
+      entry: kind === 'esm'
+    });
   }
 
   return manifestEntries.sort((a, b) => a.filename.localeCompare(b.filename));
@@ -152,24 +178,74 @@ type ManifestEntry = {
   version: string;
   cdnBasePath: string;
   generatedAt: string;
+  bundleReport: BundleReport;
   assets: Array<{
     path: string;
     filename: string;
     integrity: string;
     size: number;
+    gzipSize: number;
+    kind: string;
+    entry: boolean;
   }>;
 };
 
-function buildManifest(version: string, cdnSubpath: string, assets: Array<{ filename: string; integrity: string; size: number }>): ManifestEntry {
+type BundleReport = {
+  phaseA: BundlePhase;
+  phaseB: BundlePhase;
+};
+
+type BundlePhase = Record<'esm' | 'umd' | 'block', { gzipBytes: number; limitBytes: number; ok: boolean }>;
+
+const PHASE_A_LIMITS: Record<'esm' | 'umd' | 'block', number> = {
+  esm: 95 * 1024,
+  umd: 120 * 1024,
+  block: 30 * 1024
+};
+
+const PHASE_B_LIMITS: Record<'esm' | 'umd' | 'block', number> = {
+  esm: 35 * 1024,
+  umd: 45 * 1024,
+  block: 15 * 1024
+};
+
+function evaluatePhase(
+  sizes: Record<'esm' | 'umd' | 'block', number>,
+  limits: Record<'esm' | 'umd' | 'block', number>
+): BundlePhase {
+  return {
+    esm: { gzipBytes: sizes.esm, limitBytes: limits.esm, ok: sizes.esm <= limits.esm },
+    umd: { gzipBytes: sizes.umd, limitBytes: limits.umd, ok: sizes.umd <= limits.umd },
+    block: { gzipBytes: sizes.block, limitBytes: limits.block, ok: sizes.block <= limits.block }
+  };
+}
+
+function computeBundleReport(assets: CollectedAsset[]): BundleReport {
+  const sizes: Record<'esm' | 'umd' | 'block', number> = {
+    esm: assets.find((asset) => asset.kind === 'esm')?.gzipSize ?? 0,
+    umd: assets.find((asset) => asset.kind === 'umd')?.gzipSize ?? 0,
+    block: 0
+  };
+  return {
+    phaseA: evaluatePhase(sizes, PHASE_A_LIMITS),
+    phaseB: evaluatePhase(sizes, PHASE_B_LIMITS)
+  };
+}
+
+function buildManifest(version: string, cdnSubpath: string, assets: CollectedAsset[]): ManifestEntry {
   return {
     version,
     cdnBasePath: `/${cdnSubpath}`,
     generatedAt: new Date().toISOString(),
+    bundleReport: computeBundleReport(assets),
     assets: assets.map((asset) => ({
       path: `/${cdnSubpath}/${asset.filename}`,
       filename: asset.filename,
       integrity: asset.integrity,
-      size: asset.size
+      size: asset.size,
+      gzipSize: asset.gzipSize,
+      kind: asset.kind,
+      entry: asset.entry
     }))
   } satisfies ManifestEntry;
 }

@@ -1,101 +1,25 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { EmbedConfig, EmbedHandle } from '@events-hub/embed-sdk';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { EmbedHandle } from '@events-hub/embed-sdk';
 import type { PageDoc } from '@events-hub/page-schema';
 import { createDefaultDemoPlan } from '@events-hub/default-plan';
 import { DEFAULT_TENANT, getApiBase, getConfigUrl, getEmbedMode, getEmbedSrc, getPlanMode } from '../lib/env';
 import { useDefaultPlan } from '../lib/useDefaultPlan';
-
-type EmbedModule = { create(config: EmbedConfig): EmbedHandle };
-
-declare global {
-  interface Window {
-    EventsHubEmbed?: EmbedModule;
-  }
-}
+import { DEMO_EMBED_THEME } from '../lib/embed-theme';
+import { createEmbedHandle, loadEmbedModule, type EmbedModule } from '../lib/embed-loader';
+import { SeoInspector } from './components/SeoInspector';
+import { useConsentController } from '../lib/consent';
 
 const DEFAULT_TENANT_ID = DEFAULT_TENANT;
-const EMBED_THEME = {
-  '--eh-color-bg': '#020617',
-  '--eh-color-text': '#e2e8f0'
-} satisfies Record<string, string>;
-
-function resolveGlobalModule(): EmbedModule | undefined {
-  if (typeof window === 'undefined') return undefined;
-  const embedModule = window.EventsHubEmbed;
-  if (embedModule && typeof embedModule.create === 'function') {
-    return embedModule;
-  }
-  return undefined;
-}
-
-async function loadExternalModule(src: string): Promise<EmbedModule> {
-  if (typeof document === 'undefined') {
-    throw new Error('External embed mode requires a browser environment.');
-  }
-  const existing = resolveGlobalModule();
-  if (existing) {
-    return existing;
-  }
-  if (!src) {
-    throw new Error('NEXT_PUBLIC_EMBED_SRC must be defined for external embed mode.');
-  }
-
-  return new Promise<EmbedModule>((resolve, reject) => {
-    const onReady = () => {
-      const embedModule = resolveGlobalModule();
-      if (embedModule) {
-        resolve(embedModule);
-      } else {
-        reject(new Error('The embed SDK failed to register the expected global.'));
-      }
-    };
-    const onError = () => {
-      reject(new Error(`Failed to load the embed SDK from ${src}.`));
-    };
-
-    const existingScript = document.querySelector<HTMLScriptElement>('script[data-events-hub-embed]');
-    if (existingScript) {
-      if (existingScript.dataset.loaded === 'true' && resolveGlobalModule()) {
-        resolve(resolveGlobalModule()!);
-        return;
-      }
-      existingScript.addEventListener('load', onReady, { once: true });
-      existingScript.addEventListener('error', onError, { once: true });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = src;
-    script.async = true;
-    script.dataset.eventsHubEmbed = 'true';
-    script.addEventListener(
-      'load',
-      () => {
-        script.dataset.loaded = 'true';
-        onReady();
-      },
-      { once: true }
-    );
-    script.addEventListener('error', onError, { once: true });
-    document.head.appendChild(script);
-  });
-}
-
-async function loadEmbedModule(mode: ReturnType<typeof getEmbedMode>, src: string): Promise<EmbedModule> {
-  if (mode === 'external') {
-    return loadExternalModule(src);
-  }
-  return import('@events-hub/embed-sdk/dist/index.esm.js');
-}
 
 function bootstrapEmbed(container: HTMLDivElement, embedModule: EmbedModule, plan: PageDoc) {
-  return embedModule.create({
+  return createEmbedHandle({
     container,
+    embedModule,
     tenantId: plan.tenantId ?? DEFAULT_TENANT_ID,
-    initialPlan: plan,
-    theme: EMBED_THEME
+    plan,
+    config: { theme: { ...DEMO_EMBED_THEME } }
   });
 }
 
@@ -121,6 +45,12 @@ export default function Page() {
     planMode,
     fallbackPlan
   });
+  const { status: consentStatus, setStatus: setConsentStatus } = useConsentController({
+    source: 'host',
+    defaultStatus: 'granted'
+  });
+  const consentFieldsetId = useId();
+  const consentDescriptionId = `${consentFieldsetId}-description`;
   const [embedStatus, setEmbedStatus] = useState<'initializing' | 'ready' | 'error'>('initializing');
   const [embedError, setEmbedError] = useState<string | null>(null);
   const handleRef = useRef<EmbedHandle | null>(null);
@@ -256,6 +186,40 @@ export default function Page() {
         This host demonstrates how to bootstrap the Events Hub embed SDK from a Next.js App Router application.
         Switch between linked and external embed modes by toggling <code>NEXT_PUBLIC_EMBED_MODE</code>.
       </p>
+      <section className="consent-controls" aria-labelledby={`${consentFieldsetId}-legend`}>
+        <h2 id={`${consentFieldsetId}-legend`}>Consent Controls</h2>
+        <p id={consentDescriptionId} className="muted">
+          Demo stack auto-grants consent so telemetry flushes immediately. Flip the toggle to reproduce buffered events and{' '}
+          <code>[hub-embed]:consent</code> warnings before re-granting.
+        </p>
+        <div role="radiogroup" aria-labelledby={`${consentFieldsetId}-legend`} aria-describedby={consentDescriptionId} className="consent-controls__toggles">
+          <label>
+            <input
+              type="radio"
+              name={`consent-${consentFieldsetId}`}
+              value="granted"
+              checked={consentStatus === 'granted'}
+              onChange={() => setConsentStatus('granted')}
+            />
+            Consent granted
+          </label>
+          <label>
+            <input
+              type="radio"
+              name={`consent-${consentFieldsetId}`}
+              value="pending"
+              checked={consentStatus === 'pending'}
+              onChange={() => setConsentStatus('pending')}
+            />
+            Consent pending
+          </label>
+        </div>
+        <p className="status" role="status" data-consent-status={consentStatus}>
+          {consentStatus === 'granted'
+            ? 'Consent granted — analytics + telemetry drain immediately.'
+            : 'Consent pending — SDK buffers events until consent is granted.'}
+        </p>
+      </section>
       <div
         ref={containerRef}
         data-embed-container=""
@@ -269,7 +233,7 @@ export default function Page() {
         data-plan-keys={orderedPlanKeys.join(',')}
         data-plan-endpoint={planEndpoint}
       />
-      <p className="status" role="status" aria-live="polite">
+      <p className="status" role="status" aria-live="polite" data-embed-status={embedStatus} data-consent-status={consentStatus}>
         {statusMessage}
       </p>
       <dl className="status">
@@ -302,6 +266,7 @@ export default function Page() {
         <dt>Plan hash</dt>
         <dd>{planHash}</dd>
       </dl>
+      <SeoInspector tenantId={DEFAULT_TENANT_ID} />
     </main>
   );
 }

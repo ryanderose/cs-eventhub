@@ -2,16 +2,68 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const demoDir = resolve(repoRoot, 'apps/demo-host');
+const adminDir = resolve(repoRoot, 'apps/admin');
+const apiDir = resolve(repoRoot, 'apps/api');
+const binExt = process.platform === 'win32' ? '.cmd' : '';
+const nextBin = (appDir) => resolve(appDir, 'node_modules', '.bin', `next${binExt}`);
+const tsxBin = resolve(repoRoot, 'node_modules', '.bin', `tsx${binExt}`);
+
+function resolvePort(value, fallback) {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+const demoPort = resolvePort(process.env.PLAYWRIGHT_DEMO_PORT ?? process.env.DEMO_PORT, 3000);
+const adminPort = resolvePort(process.env.PLAYWRIGHT_ADMIN_PORT ?? process.env.ADMIN_PORT, 3001);
+const apiPort = resolvePort(process.env.PLAYWRIGHT_API_PORT ?? process.env.API_PORT, 4000);
+
+const serverConfigs = {
+  demo: {
+    name: 'demo',
+    command: nextBin(demoDir),
+    args: ['dev', '-p', String(demoPort), '-H', '0.0.0.0'],
+    cwd: demoDir,
+    env: {
+      CHOKIDAR_USEPOLLING: '1',
+      WATCHPACK_POLLING: 'true',
+      NEXT_USE_POLLING: 'true',
+      PORT: String(demoPort),
+      HOST: '0.0.0.0'
+    },
+    url: `http://localhost:${demoPort}`
+  },
+  admin: {
+    name: 'admin',
+    command: nextBin(adminDir),
+    args: ['dev', '-p', String(adminPort), '-H', '0.0.0.0'],
+    cwd: adminDir,
+    env: {
+      CHOKIDAR_USEPOLLING: '1',
+      WATCHPACK_POLLING: 'true',
+      NEXT_USE_POLLING: 'true',
+      PORT: String(adminPort),
+      HOST: '0.0.0.0'
+    },
+    url: `http://localhost:${adminPort}`
+  },
+  api: {
+    name: 'api',
+    command: tsxBin,
+    args: ['watch', 'adapters/local/server.ts'],
+    cwd: apiDir,
+    env: {
+      PORT: String(apiPort),
+      HOST: '0.0.0.0'
+    },
+    url: `http://localhost:${apiPort}/health`
+  }
+};
 
 const scenarios = {
   local: {
-    servers: [
-      { name: 'demo', args: ['run', 'e2e:serve:demo'], url: 'http://localhost:3000' },
-      { name: 'admin', args: ['run', 'e2e:serve:admin'], url: 'http://localhost:3001' },
-      { name: 'api', args: ['run', 'e2e:serve:api'], url: 'http://localhost:4000/health' }
-    ],
+    servers: [serverConfigs.demo, serverConfigs.admin, serverConfigs.api],
     testArgs: [
       'playwright',
       'test',
@@ -21,7 +73,7 @@ const scenarios = {
     ]
   },
   'api-contract': {
-    servers: [{ name: 'api', args: ['run', 'e2e:serve:api'], url: 'http://localhost:4000/health' }],
+    servers: [serverConfigs.api],
     testArgs: [
       '--filter',
       '@events-hub/api',
@@ -54,12 +106,12 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
   });
 }
 
-function startServer({ name, args, env }) {
-  const child = spawn('pnpm', args, {
+function startServer({ name, command = 'pnpm', args, env, cwd = repoRoot }) {
+  const child = spawn(command, args, {
     stdio: 'inherit',
     env: { ...process.env, ...env },
     shell: false,
-    cwd: repoRoot
+    cwd
   });
 
   child.once('exit', (code, signal) => {

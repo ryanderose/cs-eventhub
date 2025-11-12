@@ -1,7 +1,7 @@
 # Events Hub Embed v1.6 Gap Closure — Implementation Plan
 
 ## Overview
-- Deliver the spec-complete, no-iframe embed snippet (Final Spec v1.6: docs/specs/2025-11-09-events-hub-embed-final-spec-1.6.md) by implementing the missing SDK, admin, SEO, and CI capabilities documented in research so publishers can ship a single compliant integration across 3,000+ sites.
+ Deliver the spec-complete, no-iframe embed snippet (Final Spec v1.6 ticket: docs/specs/2025-11-09-events-hub-embed-final-spec-1.6.md) by implementing the missing SDK, admin, SEO, and CI capabilities documented in research so publishers can ship a single compliant integration across 3,000+ sites.
 - Focus areas: consent/partner APIs, Trusted Types, routing + lazy/legacy mount, analytics schema, admin manifest guards, SEO JSON-LD parity, performance budgets, and acceptance coverage.
 
 ## Current State (from Research)
@@ -49,15 +49,15 @@
 
 **Success Criteria**  
 **Automated**
-- [ ] Build/typecheck: `pnpm -w build`
-- [ ] Unit tests (SDK, helpers): `pnpm -w test --filter=embed-sdk`
-- [ ] Lint/style: `pnpm -w lint`
-- [ ] Bundle budgets (Phase-A/B measurement wired but may still fail pending Phase 2 config): `pnpm -w check:bundles`
-- [ ] Security scans (TT policy, dependencies): `pnpm -w security:sbom`
+- [x] Build/typecheck: `pnpm -w build`
+- [x] Unit tests (SDK, helpers): `pnpm -w test --filter=embed-sdk`
+- [x] Lint/style: `pnpm -w lint`
+- [x] Bundle budgets (Phase-A/B measurement wired but may still fail pending Phase 2 config): `pnpm -w check:bundles`
+- [x] Security scans (TT policy, dependencies): `pnpm -w security:sbom`
 **Manual**
-- [ ] Demo host running `pnpm dev:stack` mounts snippet using query/hash/path modes and verifies lazy mount/legacy mount flows.
-- [ ] Browser session with Trusted Types enforced shows safe abort when policy creation is blocked.
-- [ ] Two embeds on one page navigate independently, intercepting clicks per scope with deterministic router owner.
+- [x] Demo host running `pnpm dev:stack` mounts snippet using query/hash/path modes and verifies lazy mount/legacy mount flows.
+- [x] Browser session with Trusted Types enforced shows safe abort when policy creation is blocked.
+- [x] Two embeds on one page navigate independently, intercepting clicks per scope with deterministic router owner.
 
 ---
 
@@ -78,15 +78,15 @@
 
 **Success Criteria**  
 **Automated**
-- [ ] Admin lint/tests: `pnpm -w test --filter=admin`
-- [ ] SEO parity tests: `pnpm -w test --filter=demo-host`
-- [ ] Bundle budgets/CI: `pnpm -w budgets:embed` invoked in CI and fails on Phase-A exceedance.
-- [ ] Accessibility: `pnpm -w check:a11y` (overlays inside ShadowRoot).
-- [ ] Supply chain: `pnpm -w security:provenance`
+- [x] Admin lint/tests: `pnpm -w test --filter=admin`
+- [x] SEO parity tests: `pnpm -w test --filter=demo-host`
+- [x] Bundle budgets/CI: `pnpm -w budgets:embed` invoked in CI and fails on Phase-A exceedance.
+- [x] Accessibility: `pnpm -w check:a11y` (overlays inside ShadowRoot).
+- [x] Supply chain: `pnpm -w security:provenance`
 **Manual**
-- [ ] Attempt to generate snippet with tampered manifest; UI blocks copy with explicit drift message.
-- [ ] Review JSON-LD diff report (<1% delta) for list and detail routes via demo host Inspector.
-- [ ] Inspect admin-generated snippet tags to confirm `crossorigin` + SRI attributes match manifest.
+- [x] Attempt to generate snippet with tampered manifest; UI blocks copy with explicit drift message.
+- [x] Review JSON-LD diff report (<1% delta) for list and detail routes via demo host Inspector.
+- [x] Inspect admin-generated snippet tags to confirm `crossorigin` + SRI attributes match manifest.
 
 ---
 
@@ -95,10 +95,26 @@
 
 **Changes**
 - Tests: `apps/demo-host/e2e/embed.spec.ts:1` (new Playwright/VT) covering consent gating, lazy mount, path deep-link, click interception scopes, legacy mount, partner adapters, overlay isolation, Trusted Types abort, router readiness, multi-instance analytics, and deprecation telemetry.
+- Tests (unit/Vitest): `apps/demo-host/e2e/embed.spec.ts:1` should reuse the manual harness fixtures introduced in Phase 1/2. Capture the current behaviour documented in `apps/demo-host/app/manual/**/*.tsx` and confirm the stored plan flows coming from `useDemoPlan` work in headless mode. Research reference: manual harness context provider (`apps/demo-host/lib/useDemoPlan.tsx:1-84`) and consent controls (`apps/demo-host/lib/consent.ts:1-120`). **To-do:** build shared helpers under `apps/demo-host/e2e/utils.ts` that mount the harness pages with MSW stubs so each scenario only describes intent, not boilerplate.
+- Tests (Playwright): Expand `playwright/projects/demo/manual-harness.spec.ts` so each acceptance scenario listed below has granular assertions instead of high-level smoke checks. Capture console output for `[hub-embed]` errors (Trusted Types abort, router ownership conflicts) and include `test.step` annotations pointing back to the relevant §12 requirement. **To-do:** Once expanded, wire a dedicated CI job (name: `acceptance-harness`) that runs `pnpm playwright test --project=demo-hosts-local --grep @acceptance` behind the Playwright MCP integration. Document the MCP requirement explicitly in `docs/engineering/embed-dev.md` so future agents know to approve the prompt before invoking Playwright locally.
+- Tests (Admin): Create `apps/admin/__tests__/snippet-generator.test.tsx` to assert manifest drift refusal, missing SRI detection, and enforced `crossorigin="anonymous"` attributes. Reuse `apps/admin/lib/embed-manifest.ts` helpers to load fixture manifests (see `apps/cdn/public/hub-embed@latest/manifest.json`). **To-do:** capture both a passing manifest (Phase-A/B budgets under limit) and a tampered manifest (missing integrity) so the UI renders actionable callouts.
 - Tests: `apps/admin/__tests__/snippet-generator.test.tsx:1` — ensure refusal logic + crossorigin enforcement.
 - Docs: `docs/engineering/embed-dev.md:1` & `docs/engineering/ARCHITECTURE.md:1` — update with new routing modes, consent API usage, TT requirements, network budget expectations, and troubleshooting guide referencing `[hub-embed]` errors.
+- Docs/PR workflow: Update `scripts/turbo-run.sh` instructions + `.github/pull_request_template.md` to mention the new `budgets:embed`, acceptance suite, and MCP-aware Playwright runs. Add a short troubleshooting section to `docs/engineering/embed-dev.md` describing how to clear the manual harness consent state (`window.HubEmbed.consent.revoke()`) when verifying buffered telemetry, citing `apps/demo-host/lib/consent.ts`.
 - Release: `scripts/turbo-run.sh:1` & `.github/pull_request_template.md:1` — add steps for budgets + acceptance suite, ensuring PR authors certify manual verifications.
 - Observability: `apps/api/src/lib/telemetry.ts:1` & `packages/telemetry/src/index.ts:1` — add events/logging for consent state transitions and partner adapter callbacks for monitoring.
+- Observability To-do: Extend `packages/telemetry/src/index.ts` to include structured events for consent transitions (`sdk.consentGranted`, `sdk.consentRevoked`) and partner adapter activity (`sdk.partnerImpression`, `sdk.partnerClick`). `apps/api/src/lib/telemetry.ts` should attach these to OTel spans (e.g., `span.setAttribute('sdk.consent.status', status)`) so ClickHouse dashboards can correlate buffered vs flushed traffic. Research context: existing consent queue at `packages/embed-sdk/src/consent.ts:1-74` and partner dispatch in `packages/embed-sdk/src/partners.ts:1-48`.
+- Playwright/CI: expand `playwright/projects/demo/manual-harness.spec.ts` into the full acceptance matrix (consent, adapters, overlay isolation, router readiness, snippet refusal) and add a CI job that runs `pnpm playwright test --project=demo-hosts-local` after explicitly enabling Playwright MCP. Document this requirement in `docs/engineering/embed-dev.md` so contributors know to grant MCP before running Playwright locally.
+- Acceptance checklist (details for next agent):
+  - [ ] `Consent gating`: simulate pending state via Manual Harness Controls (`apps/demo-host/app/manual/components/ManualHarnessControls.tsx`) and assert no `hub-embed:event` payloads fire until `HubEmbed.consent.grant()` is invoked.
+  - [ ] `Lazy mount`: cover `/manual/lazy` route, ensuring `performance.getEntriesByType('resource')` remains empty until the IntersectionObserver fires (existing harness guidance at `apps/demo-host/app/manual/lazy/page.tsx`).
+  - [ ] `Legacy mount`: use the script placeholder (`PlanAwareLegacyMount` → `LegacyMountExample`) to verify the SDK inserts the container before `script#manual-legacy-loader`. Capture DOM order assertions in both Vitest and Playwright.
+  - [ ] `Path routing / Router ownership`: run `/events` and `/manual/multi` harnesses ensuring `historyMode='path'` rewrites URLs and `data-router-root` arbitration logs `[hub-embed]:router` ownership transitions (see `packages/embed-sdk/src/router.ts:1-210`).
+  - [ ] `Partner adapters`: register a mock adapter inside the manual harness (wrap `window.HubEmbed.registerPartnerAdapter`) and assert impressions/clicks remain buffered until consent is granted (reference `packages/embed-sdk/src/partners.ts`).
+  - [ ] `Trusted Types abort`: leverage `/manual/trusted-types` harness to confirm safe fallback UI and `[hub-embed]:sdk TRUSTED_TYPES_ABORT` log emission; include screenshot capture in Playwright for regression auditing.
+  - [ ] `Deprecation telemetry`: ensure accessing `window.EventsHubEmbed` triggers a single `sdk.deprecation` event per session (`packages/embed-sdk/src/index.ts:317-333`).
+  - [ ] `Snippet refusal`: add an admin Playwright spec (new tag `@acceptance`) that uploads a tampered manifest (missing integrity) and confirms the Copy button stays disabled with an error callout.
+  - [ ] `Overlay isolation`: verify blocks that open portals (map modals, chat, etc.) stay inside the ShadowRoot by inspecting DOM ancestry (see existing unit test `apps/demo-host/__tests__/parity.test.tsx:70-118` for reference).
 
 **Notes**
 - Keep acceptance suite stable by using demo fixtures hosted in repo (no live API dependency) to avoid flaky runs.
