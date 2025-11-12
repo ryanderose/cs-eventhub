@@ -2,24 +2,45 @@
   "version": "0.0.1",
   "cdnBasePath": "/hub-embed@0.0.1",
   "generatedAt": "2025-10-31T01:54:06.143Z",
+  "bundleReport": {
+    "phaseA": {
+      "esm": { "gzipBytes": 7564, "limitBytes": 97280, "ok": true },
+      "umd": { "gzipBytes": 7855, "limitBytes": 122880, "ok": true },
+      "block": { "gzipBytes": 0, "limitBytes": 30720, "ok": true }
+    },
+    "phaseB": {
+      "esm": { "gzipBytes": 7564, "limitBytes": 35840, "ok": true },
+      "umd": { "gzipBytes": 7855, "limitBytes": 46080, "ok": true },
+      "block": { "gzipBytes": 0, "limitBytes": 15360, "ok": true }
+    }
+  },
   "assets": [
     {
       "path": "/hub-embed@0.0.1/hub-embed.umd.js",
       "filename": "hub-embed.umd.js",
       "integrity": "sha384-dZfWUW7Q1EA/P5b/yGRTjfpgsq52dWpKhStPnMeB5cQ50MwDJK8ApMWWAs0t8g1+",
-      "size": 5938
+      "size": 5938,
+      "gzipSize": 7855,
+      "kind": "umd",
+      "entry": false
     },
     {
       "path": "/hub-embed@0.0.1/index.esm.js",
       "filename": "index.esm.js",
       "integrity": "sha384-CZjlZd4Fk4Lz2e1bbG4sgFYhJ70dWM953mc5XEfUJrHDIusvTkyvtAJH4k0Vp4ef",
-      "size": 6676
+      "size": 6676,
+      "gzipSize": 7564,
+      "kind": "esm",
+      "entry": true
     },
     {
       "path": "/hub-embed@0.0.1/tokens.css",
       "filename": "tokens.css",
       "integrity": "sha384-renpBJwBeI6mWknEEWSeEP19xyRSNKOxL/9YwrIvMezbKoTstpctUZsVQjfa5Qhx",
-      "size": 110
+      "size": 110,
+      "gzipSize": 112,
+      "kind": "css",
+      "entry": false
     }
   ]
 }

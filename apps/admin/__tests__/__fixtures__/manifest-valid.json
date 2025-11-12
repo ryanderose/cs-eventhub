@@ -1,0 +1,61 @@
+{
+  "id": "hub-embed@latest",
+  "version": "0.0.1",
+  "label": "hub-embed@latest",
+  "cdnBasePath": "/hub-embed@latest",
+  "generatedAt": "2025-10-31T01:54:06.161Z",
+  "status": "ready",
+  "errors": [],
+  "warnings": [],
+  "assets": [
+    {
+      "filename": "hub-embed.umd.js",
+      "path": "/hub-embed@latest/hub-embed.umd.js",
+      "url": "/hub-embed@latest/hub-embed.umd.js",
+      "integrity": "sha384-dZfWUW7Q1EA/P5b/yGRTjfpgsq52dWpKhStPnMeB5cQ50MwDJK8ApMWWAs0t8g1+",
+      "size": 5938,
+      "gzipSize": 7855,
+      "kind": "umd",
+      "entry": false
+    },
+    {
+      "filename": "index.esm.js",
+      "path": "/hub-embed@latest/index.esm.js",
+      "url": "/hub-embed@latest/index.esm.js",
+      "integrity": "sha384-CZjlZd4Fk4Lz2e1bbG4sgFYhJ70dWM953mc5XEfUJrHDIusvTkyvtAJH4k0Vp4ef",
+      "size": 6676,
+      "gzipSize": 7564,
+      "kind": "esm",
+      "entry": true
+    },
+    {
+      "filename": "tokens.css",
+      "path": "/hub-embed@latest/tokens.css",
+      "url": "/hub-embed@latest/tokens.css",
+      "integrity": "sha384-renpBJwBeI6mWknEEWSeEP19xyRSNKOxL/9YwrIvMezbKoTstpctUZsVQjfa5Qhx",
+      "size": 110,
+      "gzipSize": 112,
+      "kind": "css",
+      "entry": false
+    }
+  ],
+  "bundleReport": {
+    "phaseA": {
+      "esm": { "gzipBytes": 7564, "limitBytes": 97280, "ok": true },
+      "umd": { "gzipBytes": 7855, "limitBytes": 122880, "ok": true },
+      "block": { "gzipBytes": 0, "limitBytes": 30720, "ok": true }
+    },
+    "phaseB": {
+      "esm": { "gzipBytes": 7564, "limitBytes": 35840, "ok": true },
+      "umd": { "gzipBytes": 7855, "limitBytes": 46080, "ok": true },
+      "block": { "gzipBytes": 0, "limitBytes": 15360, "ok": true }
+    }
+  },
+  "scripts": {
+    "module": "<script type=\"module\" crossorigin=\"anonymous\" integrity=\"sha384-CZjlZd4Fk4Lz2e1bbG4sgFYhJ70dWM953mc5XEfUJrHDIusvTkyvtAJH4k0Vp4ef\" src=\"/hub-embed@latest/index.esm.js\"></script>",
+    "nomodule": "<script nomodule crossorigin=\"anonymous\" integrity=\"sha384-dZfWUW7Q1EA/P5b/yGRTjfpgsq52dWpKhStPnMeB5cQ50MwDJK8ApMWWAs0t8g1+\" src=\"/hub-embed@latest/hub-embed.umd.js\"></script>",
+    "styles": [
+      "<link rel=\"stylesheet\" crossorigin=\"anonymous\" integrity=\"sha384-renpBJwBeI6mWknEEWSeEP19xyRSNKOxL/9YwrIvMezbKoTstpctUZsVQjfa5Qhx\" href=\"/hub-embed@latest/tokens.css\" />"
+    ]
+  }
+}

@@ -248,6 +248,11 @@ export async function handleDefaultPlan(req: ApiRequest, res: ApiResponse): Prom
         blocks: reorderedBlocks
       };
 
+      console.info('[defaultPlan.update] reorder', {
+        incomingOrder: incomingPlan.blocks.map((block) => ({ key: block.key, order: block.order })),
+        updatedOrder: reorderedBlocks.map((block) => ({ key: block.key, order: block.order }))
+      });
+
       const record = await writeDefaultPage(updatedPlan);
       span.setAttribute('plan.hash', record.planHash);
       span.setAttribute('block.count', record.plan.blocks.length);

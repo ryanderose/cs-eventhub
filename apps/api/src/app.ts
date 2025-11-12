@@ -105,5 +105,10 @@ export function createApp() {
     app.get(path, wrap(proxyFragment));
   }
 
+  const fragmentTenantPaths = ['/api/v1/fragment/:tenant', '/v1/fragment/:tenant'];
+  for (const path of fragmentTenantPaths) {
+    app.get(path, wrap(proxyFragment));
+  }
+
   return app;
 }

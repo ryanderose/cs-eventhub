@@ -3,25 +3,39 @@ export type AnalyticsEnvelope = {
   sessionId: string;
   ts: number;
   route: string;
+  routeName?: string;
+  previousUrl?: string;
   section?: string;
   planHash?: string;
   device?: string;
   referrer?: string;
+  embedId?: string;
+  version?: string;
+};
+
+type BaseSdkEvent = {
+  routeName?: string;
+  previousUrl?: string;
+  embedId?: string;
+  tenantId?: string;
+  version?: string;
 };
 
 export type SdkEvent =
-  | { type: 'sdk.blockHydrated'; blockId: string; firstPaintMs: number; items: number }
-  | { type: 'sdk.blockDepleted'; blockId: string; totalItems: number }
-  | { type: 'sdk.sectionChanged'; section: string }
-  | { type: 'card_impression'; canonicalId: string; blockId: string; position: number; visiblePct: number }
-  | { type: 'card_click'; canonicalId: string; blockId: string; position: number }
-  | { type: 'ticket_outbound_click'; canonicalId: string; blockId: string; href: string }
-  | { type: 'promo_impression'; promoId: string; blockId: string; visiblePct: number }
-  | { type: 'promo_click'; promoId: string; blockId: string }
-  | { type: 'chat_open'; context: 'global' | 'event' }
-  | { type: 'chat_submit'; context: 'global' | 'event' }
-  | { type: 'chat_latency_ms'; p50: number; p95: number }
-  | { type: 'ai_fallback_triggered'; reason: 'timeout' | 'policy' };
+  | (BaseSdkEvent & { type: 'sdk.blockHydrated'; blockId: string; firstPaintMs: number; items: number })
+  | (BaseSdkEvent & { type: 'sdk.blockDepleted'; blockId: string; totalItems: number })
+  | (BaseSdkEvent & { type: 'sdk.sectionChanged'; section: string })
+  | (BaseSdkEvent & { type: 'filters_reset'; active: string[] })
+  | (BaseSdkEvent & { type: 'card_impression'; canonicalId: string; blockId: string; position: number; visiblePct: number })
+  | (BaseSdkEvent & { type: 'card_click'; canonicalId: string; blockId: string; position: number })
+  | (BaseSdkEvent & { type: 'ticket_outbound_click'; canonicalId: string; blockId: string; href: string })
+  | (BaseSdkEvent & { type: 'promo_impression'; promoId: string; blockId: string; visiblePct: number })
+  | (BaseSdkEvent & { type: 'promo_click'; promoId: string; blockId: string })
+  | (BaseSdkEvent & { type: 'chat_open'; context: 'global' | 'event' })
+  | (BaseSdkEvent & { type: 'chat_submit'; context: 'global' | 'event' })
+  | (BaseSdkEvent & { type: 'chat_latency_ms'; p50: number; p95: number })
+  | (BaseSdkEvent & { type: 'ai_fallback_triggered'; reason: 'timeout' | 'policy' })
+  | (BaseSdkEvent & { type: 'sdk.deprecation'; from: string; to: string });
 
 export type TelemetryEvent = {
   envelope: AnalyticsEnvelope;

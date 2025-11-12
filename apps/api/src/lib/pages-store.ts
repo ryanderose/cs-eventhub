@@ -47,13 +47,16 @@ function pointerKey(tenantId: string): string {
 export async function getDefaultPageHash(tenantId: string): Promise<DefaultPagePointer | null> {
   const key = pointerKey(tenantId);
   if (kvAvailable()) {
-    const raw = await kvClient.get<string>(key);
+    const raw = (await kvClient.get<DefaultPagePointer | string>(key)) ?? null;
     if (!raw) return null;
-    try {
-      return JSON.parse(raw) as DefaultPagePointer;
-    } catch {
-      return null;
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw) as DefaultPagePointer;
+      } catch {
+        return null;
+      }
     }
+    return raw;
   }
   const cache = getPointerCache();
   return cache.get(key) ?? null;
@@ -61,9 +64,8 @@ export async function getDefaultPageHash(tenantId: string): Promise<DefaultPageP
 
 export async function setDefaultPageHash(tenantId: string, pointer: DefaultPagePointer) {
   const key = pointerKey(tenantId);
-  const payload = JSON.stringify(pointer);
   if (kvAvailable()) {
-    await kvClient.set(key, payload);
+    await kvClient.set(key, pointer);
   }
   const cache = getPointerCache();
   cache.set(key, pointer);

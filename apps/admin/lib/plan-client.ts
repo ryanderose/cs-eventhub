@@ -1,8 +1,10 @@
 import { PageDoc } from '@events-hub/page-schema';
+import type { SnippetListResponse } from './snippet-types';
 
 const rawClientEndpoint = process.env.NEXT_PUBLIC_DEFAULT_PLAN_ENDPOINT?.trim();
 const CLIENT_PLAN_ENDPOINT =
   rawClientEndpoint && rawClientEndpoint.length ? rawClientEndpoint : '/api/default-plan';
+const CLIENT_SNIPPET_ENDPOINT = '/api/snippet';
 
 const ENV_SERVER_API_BASE =
   process.env.ADMIN_API_BASE ??
@@ -171,4 +173,24 @@ export async function saveDefaultPlan(
     body: JSON.stringify({ plan })
   });
   return handleResponse(response);
+}
+
+async function handleSnippetResponse(response: Response) {
+  if (response.ok) {
+    return (await response.json()) as SnippetListResponse;
+  }
+  const payload = await readJson(response);
+  throw new ApiError(response.status, response.statusText, payload);
+}
+
+export async function fetchSnippetList(init?: RequestInit): Promise<SnippetListResponse> {
+  const response = await fetch(CLIENT_SNIPPET_ENDPOINT, {
+    ...init,
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+      ...(init?.headers ?? {})
+    }
+  });
+  return handleSnippetResponse(response);
 }
