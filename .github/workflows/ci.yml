@@ -28,10 +28,35 @@ jobs:
       - run: pnpm -w security:sbom
       - run: pnpm -w security:provenance
 
+  acceptance-harness:
+    needs: setup
+    runs-on: ubuntu-latest
+    env:
+      TURBO_ALLOW_MISSING_TOKEN: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps
+      - name: Run acceptance suite
+        run: pnpm acceptance
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-acceptance-report
+          path: playwright-report
+
   vercel-preview:
     if: github.event_name == 'pull_request'
     name: Vercel preview deployments
-    needs: setup
+    needs: [setup, acceptance-harness]
     runs-on: ubuntu-latest
     permissions:
       contents: read

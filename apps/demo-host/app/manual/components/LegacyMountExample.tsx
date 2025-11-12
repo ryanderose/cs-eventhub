@@ -98,7 +98,7 @@ export function LegacyMountExample({ tenantId = DEFAULT_TENANT, plan, planHash }
       <div className="legacy-mount-harness">
         <script id={SCRIPT_ID} data-manual-legacy-script="" />
       </div>
-      <p className="status" role="status" data-consent-status={consentStatus}>
+      <p className="status" role="status" data-embed-status={status} data-consent-status={consentStatus}>
         {status === 'loading' && 'Waiting for legacy mount…'}
         {status === 'ready' && 'Legacy mount complete — inspect DOM order above.'}
         {status === 'error' && `Legacy mount failed${error ? `: ${error}` : ''}`}

@@ -96,6 +96,7 @@ function resolveContainer(config: EmbedConfig, logger: HubLogger): HTMLElement {
     const script = document.querySelector<HTMLElement>(selector);
     if (script?.parentElement) {
       const placeholder = document.createElement('div');
+      placeholder.setAttribute('data-embed-container', '');
       script.parentElement.insertBefore(placeholder, script);
       return placeholder;
     }

@@ -233,7 +233,7 @@ export default function Page() {
         data-plan-keys={orderedPlanKeys.join(',')}
         data-plan-endpoint={planEndpoint}
       />
-      <p className="status" role="status" aria-live="polite">
+      <p className="status" role="status" aria-live="polite" data-embed-status={embedStatus} data-consent-status={consentStatus}>
         {statusMessage}
       </p>
       <dl className="status">

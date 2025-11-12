@@ -29,6 +29,7 @@ export function ManualEmbed({
 }: ManualEmbedProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<EmbedHandle | null>(null);
+  const detachHandleListenersRef = useRef<(() => void) | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
   const embedMode = useMemo(() => getEmbedMode(), []);
@@ -44,6 +45,17 @@ export function ManualEmbed({
     consentStatus === 'granted'
       ? 'Consent granted — analytics emit immediately.'
       : 'Consent pending — telemetry buffers until consent is granted.';
+  const preferLegacyAlias = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('alias') === 'legacy';
+    } catch {
+      return false;
+    }
+  }, []);
 
   if (!initialPlanRef.current) {
     initialPlanRef.current = plan;
@@ -91,6 +103,13 @@ export function ManualEmbed({
         if (!containerRef.current || disposed) {
           return;
         }
+        if (preferLegacyAlias) {
+          try {
+            (window as typeof window & { EventsHubEmbed?: unknown }).EventsHubEmbed;
+          } catch {
+            // noop
+          }
+        }
         const initialPlan = initialPlanRef.current as PageDoc;
         const handle = embedModule.create({
           container: containerRef.current,
@@ -102,7 +121,23 @@ export function ManualEmbed({
         });
         handleRef.current = handle;
         currentPlanHashRef.current = initialPlan.meta?.planHash ?? null;
-        setStatus('ready');
+        const onHydrate = () => {
+          if (disposed) return;
+          setError(null);
+          setStatus('ready');
+        };
+        const onPlanError = (event: { error: Error }) => {
+          if (disposed) return;
+          setStatus('error');
+          setError(event.error.message);
+        };
+        handle.on('plan:hydrate', onHydrate);
+        handle.on('plan:error', onPlanError);
+        detachHandleListenersRef.current = () => {
+          handle.off('plan:hydrate', onHydrate);
+          handle.off('plan:error', onPlanError);
+          detachHandleListenersRef.current = null;
+        };
       } catch (err) {
         if (disposed) return;
         setStatus('error');
@@ -114,12 +149,14 @@ export function ManualEmbed({
 
     return () => {
       disposed = true;
+      detachHandleListenersRef.current?.();
+      detachHandleListenersRef.current = null;
       handleRef.current?.destroy();
       handleRef.current = null;
       restoreTrustedTypesRef.current?.();
       restoreTrustedTypesRef.current = null;
     };
-  }, [embedMode, embedSrc, resolvedTenantId, embedId, resolvedConfig, simulateTrustedTypesFailure]);
+  }, [embedMode, embedSrc, resolvedTenantId, embedId, resolvedConfig, simulateTrustedTypesFailure, preferLegacyAlias]);
 
   useEffect(() => {
     const nextHash = planHash ?? plan.meta?.planHash ?? null;
@@ -141,7 +178,7 @@ export function ManualEmbed({
   return (
     <div className={className}>
       <div ref={containerRef} data-embed-container="" />
-      <p className="status" role="status" data-consent-status={consentStatus}>
+      <p className="status" role="status" data-embed-status={status} data-consent-status={consentStatus}>
         {status === 'loading' && 'Mounting embed…'}
         {status === 'ready' && 'Embed ready.'}
         {status === 'error' && `Failed to mount embed${error ? ` — ${error}` : ''}`}

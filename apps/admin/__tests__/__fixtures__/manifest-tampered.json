@@ -1,0 +1,26 @@
+{
+  "id": "hub-embed@latest",
+  "version": "0.0.1",
+  "label": "hub-embed@latest",
+  "cdnBasePath": "/hub-embed@mismatch",
+  "generatedAt": "2025-10-31T01:54:06.161Z",
+  "status": "invalid",
+  "errors": [
+    "Manifest cdnBasePath (/hub-embed@mismatch) does not match directory (/hub-embed@latest). This indicates CDN drift; rerun pnpm publish:embed.",
+    "Asset hub-embed.umd.js is missing integrity metadata.",
+    "Manifest missing ESM entry (index.esm.js)."
+  ],
+  "warnings": [],
+  "assets": [
+    {
+      "filename": "hub-embed.umd.js",
+      "path": "/hub-embed@latest/hub-embed.umd.js",
+      "url": "/hub-embed@latest/hub-embed.umd.js",
+      "integrity": "",
+      "size": 5938,
+      "gzipSize": 7855,
+      "kind": "umd",
+      "entry": false
+    }
+  ]
+}

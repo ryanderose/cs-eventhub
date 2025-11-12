@@ -29,6 +29,11 @@
       "dependsOn": ["build"],
       "outputs": ["bundle-reports/**"]
     },
+    "acceptance": {
+      "dependsOn": ["build"],
+      "outputs": ["playwright-report/**", "test-results/**"],
+      "cache": false
+    },
     "security:sbom": {
       "dependsOn": ["build"],
       "outputs": [".sbom/**"]

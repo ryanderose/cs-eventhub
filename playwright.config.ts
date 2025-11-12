@@ -37,7 +37,7 @@ function resolveBypassHeaders(scope?: 'DEMO' | 'ADMIN' | 'API'): Record<string, 
 }
 
 export default defineConfig({
-  testDir: 'playwright',
+  testDir: '.',
   timeout: 45_000,
   expect: {
     timeout: 5_000
@@ -49,13 +49,15 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }]
   ],
   use: {
-    trace: 'on-first-retry'
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure'
   },
   projects: [
     {
       name: 'demo-hosts-local',
       grepInvert: /@preview/,
-      testMatch: ['**/projects/demo/**/*.spec.ts'],
+      testMatch: ['**/projects/demo/**/*.spec.ts', 'apps/demo-host/e2e/**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://localhost:3000'
@@ -65,6 +67,15 @@ export default defineConfig({
         url: 'http://localhost:3000',
         reuseExistingServer: true,
         timeout: 120_000
+      }
+    },
+    {
+      name: 'acceptance-local',
+      grep: /@acceptance/,
+      testMatch: ['apps/demo-host/e2e/**/*.spec.ts'],
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3000'
       }
     },
     {
@@ -99,7 +110,7 @@ export default defineConfig({
     {
       name: 'demo-hosts-preview',
       grep: /@preview/,
-      testMatch: ['**/projects/demo/**/*.spec.ts'],
+      testMatch: ['**/projects/demo/**/*.spec.ts', 'apps/demo-host/e2e/**/*.spec.ts'],
       use: {
         ...previewDevice,
         browserName: previewBrowserName,

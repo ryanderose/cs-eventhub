@@ -52,10 +52,26 @@ Phase 1 introduced a set of dedicated demo-host routes so we can exercise every 
 - `/manual/legacy` — `data-mount-before` placeholder path.  
 - `/manual/trusted-types` — forces Trusted Types policy failure to verify the abort UI.  
 - `/manual/multi` — two embeds on one page with router ownership diagnostics.
+- Add `?consent=pending` to any manual harness URL to boot with consent revoked (useful for telemetry buffering tests), and `?alias=legacy` to force the embed to access the legacy `window.EventsHubEmbed` alias before instantiation so deprecation telemetry fires deterministically.
 
 The home page also includes an **SEO Parity Inspector** widget underneath the status readout. It fetches `/fragment/<tenant>` (list + detail) through the demo-host proxy, surfaces the JSON-LD diff percentage, ID parity, CSS hash, and lets you copy the JSON-LD payload. Use it to satisfy the plan’s “Review JSON-LD diff report (<1% delta)” manual step without crafting additional tooling.
 
-The Playwright spec at `playwright/projects/demo/manual-harness.spec.ts` automates smoke coverage of these routes so later phases can lean on the same harness. **Important:** Playwright cannot run directly in this CLI sandbox; before invoking `pnpm test:e2e:local` (or any Playwright command) you must enable the Playwright MCP integration when prompted. If MCP access is unavailable, document the gap instead of attempting to run the suite.
+The Playwright spec at `playwright/projects/demo/manual-harness.spec.ts` automates smoke coverage of these routes so later phases can lean on the same harness.
+
+> **Sandbox-only workflow:** The Codex CLI sandbox cannot launch Chromium directly—every attempt to run `pnpm playwright test …` or `pnpm test:e2e:local` will crash with `browserType.launch` → `SIGABRT`. Always run browser automation through the Playwright MCP bridge instead of the local runner:
+>
+> 1. Ensure the demo host (3000), admin (3001), API (4000), and embed CDN (5173) are running (e.g., via `pnpm dev:stack` on the host machine).
+> 2. Start the MCP bridge (`npx @playwright/mcp@latest --isolated`) or use the Codex CLI Playwright tools (`browser_navigate`, `browser_take_screenshot`, etc.).
+> 3. Drive the manual harness scenarios from the remote browser, capture artifacts under `/tmp/playwright-mcp-output/<runId>/`, and attach them to your PR.
+>
+> If MCP access is unavailable, stop and document the gap instead of attempting to run the suite locally.
+
+## Acceptance suite (`@acceptance`)
+
+- Run `pnpm acceptance` (alias for `pnpm playwright test --project=acceptance-local --grep @acceptance`). The script starts `pnpm dev:stack` via `concurrently`, waits for `http://localhost:3000`, `http://localhost:3001`, and `http://localhost:4000/health` to respond (using `wait-on`), then kicks off the Playwright run. Make sure those ports are free before running the command; the helper tears the stack down automatically when tests finish.
+- The command starts the demo host automatically via Playwright’s `webServer` hook; no extra `pnpm dev:stack` process is required.
+- In the Codex CLI sandbox you **must** route browser automation through the Playwright MCP bridge (see steps above) because Chromium cannot launch directly. Capture artifacts (logs, TT screenshots, overlay snapshots) and attach them to your PR.
+- CI runs the same command under the `acceptance-harness` workflow; failures block merges. Make sure you can run the suite locally (with MCP approval) before marking the PR checkbox.
 
 ### Trusted Types console noise
 

@@ -1,12 +1,18 @@
 'use client';
 
-import { useId } from 'react';
+import { useId, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useConsentController } from '../../../lib/consent';
 
 export function ManualHarnessControls() {
   const radioGroupId = useId();
   const descriptionId = `${radioGroupId}-description`;
-  const { status, setStatus } = useConsentController({ source: 'manual-harness', defaultStatus: 'granted' });
+  const searchParams = useSearchParams();
+  const defaultStatus = useMemo<'granted' | 'pending'>(() => {
+    const queryValue = searchParams.get('consent');
+    return queryValue === 'pending' ? 'pending' : 'granted';
+  }, [searchParams]);
+  const { status, setStatus } = useConsentController({ source: 'manual-harness', defaultStatus });
   const isGranted = status === 'granted';
 
   return (
