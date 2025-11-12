@@ -1,3 +1,5 @@
+import '@testing-library/jest-dom/vitest';
+import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import type { PageDoc } from '@events-hub/page-schema';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
@@ -83,7 +85,13 @@ describe('ManualEmbed plan rehydration', () => {
   it('hydrates the existing handle when planHash changes', async () => {
     const hydrateNext = vi.fn();
     const destroy = vi.fn();
-    const create = vi.fn(() => ({ hydrateNext, destroy }));
+    const on = vi.fn((event: string, callback: () => void) => {
+      if (event === 'plan:hydrate') {
+        callback();
+      }
+    });
+    const off = vi.fn();
+    const create = vi.fn(() => ({ hydrateNext, destroy, on, off }));
     mockLoadEmbedModule.mockResolvedValue({ create });
 
     const initialPlan = createPlan('plan-a', [

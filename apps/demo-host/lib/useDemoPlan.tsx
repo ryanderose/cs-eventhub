@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { PageDoc } from '@events-hub/page-schema';

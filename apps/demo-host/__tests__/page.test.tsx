@@ -31,43 +31,98 @@ if (!HTMLElement.prototype.attachShadow) {
 
 type MockHandle = EmbedHandle & { destroy: ReturnType<typeof vi.fn> };
 
-const createMock = vi.fn((config: EmbedConfig): MockHandle => {
-  const shadow = config.container.attachShadow({ mode: 'open' });
-  if ('innerHTML' in shadow) {
-    (shadow as unknown as { innerHTML: string }).innerHTML = '<div data-shadow-host=""></div>';
-  }
-  return {
-    hydrateNext: vi.fn(),
-    destroy: vi.fn(() => {
-      config.container.replaceChildren();
-    }),
-    on: vi.fn(),
-    off: vi.fn(),
-    getShadowRoot: () => shadow
-  } as MockHandle;
+const { createMock, consentMock } = vi.hoisted(() => {
+  const mock = vi.fn((config: EmbedConfig): MockHandle => {
+    const shadow = config.container.attachShadow({ mode: 'open' });
+    if ('innerHTML' in shadow) {
+      (shadow as unknown as { innerHTML: string }).innerHTML = '<div data-shadow-host=""></div>';
+    }
+    return {
+      hydrateNext: vi.fn(),
+      destroy: vi.fn(() => {
+        config.container.replaceChildren();
+      }),
+      on: vi.fn(),
+      off: vi.fn(),
+      getShadowRoot: () => shadow
+    } as MockHandle;
+  });
+  const consent = {
+    grant: vi.fn(),
+    revoke: vi.fn(),
+    status: vi.fn(() => 'pending')
+  };
+  return { createMock: mock, consentMock: consent };
 });
 
 vi.mock('@events-hub/embed-sdk/dist/index.esm.js', () => ({
-  create: createMock
+  create: createMock,
+  consent: consentMock
+}));
+
+vi.mock('@events-hub/embed-sdk', () => ({
+  create: createMock,
+  consent: consentMock
 }));
 
 describe('Next.js embed host page', () => {
   const fetchMock = vi.fn();
+  type ResponseFactory = () => Promise<Response>;
+  const planResponses: ResponseFactory[] = [];
+  const fragmentResponses: ResponseFactory[] = [];
 
-  function queueFragmentSuccesses(times = 2) {
-    for (let index = 0; index < times; index += 1) {
-      fetchMock.mockResolvedValueOnce({
+  function resolveRequestUrl(target: Parameters<typeof fetch>[0]): string {
+    if (typeof target === 'string') {
+      return target;
+    }
+    if (target instanceof URL) {
+      return target.toString();
+    }
+    if (typeof Request !== 'undefined' && target instanceof Request) {
+      return target.url;
+    }
+    if (target && typeof target === 'object' && 'url' in target) {
+      return (target as Request).url;
+    }
+    return '';
+  }
+
+  function queuePlanSuccess(plan: PageDoc) {
+    planResponses.push(() =>
+      Promise.resolve({
         ok: true,
         status: 200,
         json: async () => ({
-          html: '<div>fragment</div>',
-          css: '',
-          cssHash: 'fragment-hash',
-          jsonLd: '{"@id":"fragment"}',
-          parity: { diffPercent: 0, withinThreshold: true, idsMatch: true },
-          noindex: false
+          plan,
+          encodedPlan: 'encoded-api',
+          planHash: plan.meta?.planHash,
+          updatedAt: plan.updatedAt
         })
-      } as Response);
+      } as Response)
+    );
+  }
+
+  function queuePlanFailure(error: unknown) {
+    const normalized = error instanceof Error ? error : new Error(String(error));
+    planResponses.push(() => Promise.reject(normalized));
+  }
+
+  function queueFragmentSuccesses(times = 2) {
+    for (let index = 0; index < times; index += 1) {
+      fragmentResponses.push(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            html: '<div>fragment</div>',
+            css: '',
+            cssHash: 'fragment-hash',
+            jsonLd: '{"@id":"fragment"}',
+            parity: { diffPercent: 0, withinThreshold: true, idsMatch: true },
+            noindex: false
+          })
+        } as Response)
+      );
     }
   }
 
@@ -169,9 +224,37 @@ describe('Next.js embed host page', () => {
     };
   }
 
+  function getEmbedStatusElement() {
+    return document.querySelector<HTMLElement>('[data-embed-status]');
+  }
+
   beforeEach(() => {
     createMock.mockClear();
+    consentMock.grant.mockReset();
+    consentMock.revoke.mockReset();
+    consentMock.status.mockReset();
+    consentMock.status.mockReturnValue('pending');
+    planResponses.length = 0;
+    fragmentResponses.length = 0;
     fetchMock.mockReset();
+    fetchMock.mockImplementation((request: Parameters<typeof fetch>[0]) => {
+      const url = resolveRequestUrl(request);
+      if (url.includes('/api/default-plan') || url.includes('/v1/plan/default')) {
+        const nextPlan = planResponses.shift();
+        if (!nextPlan) {
+          return Promise.reject(new Error(`No plan response queued for ${url}`));
+        }
+        return nextPlan();
+      }
+      if (url.includes('/app/(seo)/fragment') || url.includes('/v1/fragment/')) {
+        const nextFragment = fragmentResponses.shift();
+        if (!nextFragment) {
+          return Promise.reject(new Error(`No fragment response queued for ${url}`));
+        }
+        return nextFragment();
+      }
+      return Promise.reject(new Error(`Unhandled fetch: ${url || 'unknown request'}`));
+    });
     (globalThis as unknown as { fetch?: unknown }).fetch = fetchMock as unknown as typeof fetch;
     document.head.querySelectorAll('script[data-events-hub-embed]').forEach((script) => script.remove());
     delete (window as unknown as { EventsHubEmbed?: unknown }).EventsHubEmbed;
@@ -191,16 +274,7 @@ describe('Next.js embed host page', () => {
   it('hydrates the embed in linked mode and attaches a shadow root', async () => {
     const apiPlan = createPlan();
     apiPlan.meta = { ...apiPlan.meta, planHash: 'hash-api' };
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        plan: apiPlan,
-        encodedPlan: 'encoded-api',
-        planHash: apiPlan.meta?.planHash,
-        updatedAt: apiPlan.updatedAt
-      })
-    } as Response);
+    queuePlanSuccess(apiPlan);
 
     queueFragmentSuccesses();
 
@@ -220,7 +294,7 @@ describe('Next.js embed host page', () => {
         plan: expect.objectContaining({ meta: expect.objectContaining({ planHash: 'hash-api' }) })
       });
     });
-    expect(screen.getByRole('status')).toHaveTextContent('Embed ready (stored default plan).');
+    expect(getEmbedStatusElement()?.textContent ?? '').toContain('Embed ready (stored default plan).');
     expect(container.dataset.planSource).toBe('api');
     expect(container.dataset.planOrigin).toBe('stored');
     expect(container.dataset.planHash).toBe('hash-api');
@@ -247,16 +321,7 @@ describe('Next.js embed host page', () => {
 
     const apiPlan = createPlan();
     apiPlan.meta = { ...apiPlan.meta, planHash: 'hash-external' };
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        plan: apiPlan,
-        encodedPlan: 'encoded-api',
-        planHash: apiPlan.meta?.planHash,
-        updatedAt: apiPlan.updatedAt
-      })
-    } as Response);
+    queuePlanSuccess(apiPlan);
 
     queueFragmentSuccesses();
 
@@ -274,8 +339,8 @@ describe('Next.js embed host page', () => {
   });
 
   it('falls back to the sample plan when the API fails twice', async () => {
-    fetchMock.mockRejectedValueOnce(new Error('network down'));
-    fetchMock.mockRejectedValueOnce(new Error('still down'));
+    queuePlanFailure(new Error('network down'));
+    queuePlanFailure(new Error('still down'));
 
     queueFragmentSuccesses();
 
@@ -292,7 +357,7 @@ describe('Next.js embed host page', () => {
     const handle = createMock.mock.results[0]?.value as MockHandle | undefined;
     expect(handle?.hydrateNext).not.toHaveBeenCalled();
 
-    const statusMessage = screen.getByRole('status').textContent ?? '';
+    const statusMessage = getEmbedStatusElement()?.textContent ?? '';
     expect(statusMessage).toContain('Unable to load default plan');
     expect(statusMessage).toContain('fallback data');
 

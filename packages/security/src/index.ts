@@ -8,6 +8,9 @@ function resolveSafeHref(rawHref: string): string {
   if (!normalizedHref) {
     return '#';
   }
+  if (normalizedHref.startsWith('//')) {
+    return '#';
+  }
   const lowerHref = normalizedHref.toLowerCase();
   if (SAFE_URL_PROTOCOLS.some((protocol) => lowerHref.startsWith(protocol))) {
     return normalizedHref;

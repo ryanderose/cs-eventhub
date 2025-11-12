@@ -47,10 +47,10 @@ export function subscribeToConsent(listener: Listener): () => void {
 
 export function grantHostConsent(source: ConsentSource = 'host'): ConsentStatus {
   ensureInitialized();
+  consent.grant(source);
   if (currentStatus === 'granted') {
     return currentStatus;
   }
-  consent.grant(source);
   updateStatus('granted', source);
   return currentStatus;
 }

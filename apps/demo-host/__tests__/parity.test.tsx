@@ -32,27 +32,42 @@ if (!HTMLElement.prototype.attachShadow) {
 
 type MockHandle = EmbedHandle & { destroy: ReturnType<typeof vi.fn> };
 
-const createMock = vi.fn((config: EmbedConfig): MockHandle => {
-  const shadow = config.container.attachShadow({ mode: 'open' });
-  if ('innerHTML' in shadow) {
-    (shadow as unknown as { innerHTML: string }).innerHTML = '<section data-block="collection"></section>';
-  }
-  return {
-    hydrateNext: vi.fn(async () => {}),
-    destroy: vi.fn(() => {
-      config.container.replaceChildren();
-    }),
-    on: vi.fn(),
-    off: vi.fn(),
-    navigate: vi.fn(),
-    getRoute: vi.fn(() => ({ view: 'list', url: '/' })),
-    getShadowRoot: () => shadow,
-    refresh: vi.fn(async () => {})
-  } as MockHandle;
+const { createMock, consentMock } = vi.hoisted(() => {
+  const mock = vi.fn((config: EmbedConfig): MockHandle => {
+    const shadow = config.container.attachShadow({ mode: 'open' });
+    if ('innerHTML' in shadow) {
+      (shadow as unknown as { innerHTML: string }).innerHTML = '<section data-block="collection"></section>';
+    }
+    const handle = {
+      hydrateNext: vi.fn(async () => {}),
+      destroy: vi.fn(() => {
+        config.container.replaceChildren();
+      }),
+      on: vi.fn(),
+      off: vi.fn(),
+      navigate: vi.fn(),
+      getRoute: vi.fn(() => ({ view: 'list', url: '/' })),
+      getShadowRoot: () => shadow,
+      refresh: vi.fn(async () => {})
+    } as MockHandle;
+    return handle;
+  });
+  const consent = {
+    grant: vi.fn(),
+    revoke: vi.fn(),
+    status: vi.fn(() => 'pending')
+  };
+  return { createMock: mock, consentMock: consent };
 });
 
 vi.mock('@events-hub/embed-sdk/dist/index.esm.js', () => ({
-  create: createMock
+  create: createMock,
+  consent: consentMock
+}));
+
+vi.mock('@events-hub/embed-sdk', () => ({
+  create: createMock,
+  consent: consentMock
 }));
 
 function createPlan(): PageDoc {
@@ -72,10 +87,100 @@ function createPlan(): PageDoc {
 
 describe('SEO parity harness & host parity tests', () => {
   const fetchMock = vi.fn();
+  type ResponseFactory = () => Promise<Response>;
+  const planResponses: ResponseFactory[] = [];
+  const fragmentResponses: ResponseFactory[] = [];
+
+  function resolveRequestUrl(target: Parameters<typeof fetch>[0]): string {
+    if (typeof target === 'string') {
+      return target;
+    }
+    if (target instanceof URL) {
+      return target.toString();
+    }
+    if (typeof Request !== 'undefined' && target instanceof Request) {
+      return target.url;
+    }
+    if (target && typeof target === 'object' && 'url' in target) {
+      return (target as Request).url;
+    }
+    return '';
+  }
+
+  function queuePlanSuccess(plan: PageDoc) {
+    planResponses.push(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          plan,
+          encodedPlan: 'encoded-plan',
+          planHash: plan.meta?.planHash ?? 'plan-hash',
+          updatedAt: plan.updatedAt
+        })
+      } as Response)
+    );
+  }
+
+  function queuePlanPending() {
+    let resolver: ((value: Response) => void) | null = null;
+    const pending = new Promise<Response>((resolve) => {
+      resolver = resolve;
+    });
+    planResponses.push(() => pending);
+    return {
+      resolve(response: Response) {
+        resolver?.(response);
+      }
+    };
+  }
+
+  function queueFragmentSuccesses(times = 2) {
+    for (let index = 0; index < times; index += 1) {
+      fragmentResponses.push(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            html: '<div>fragment</div>',
+            css: '',
+            cssHash: 'fragment-hash',
+            jsonLd: '{"@id":"fragment"}',
+            parity: { diffPercent: 0, withinThreshold: true, idsMatch: true },
+            noindex: false
+          })
+        } as Response)
+      );
+    }
+  }
 
   beforeEach(() => {
     createMock.mockClear();
+    consentMock.grant.mockReset();
+    consentMock.revoke.mockReset();
+    consentMock.status.mockReset();
+    consentMock.status.mockReturnValue('pending');
+    planResponses.length = 0;
+    fragmentResponses.length = 0;
     fetchMock.mockReset();
+    fetchMock.mockImplementation((request: Parameters<typeof fetch>[0]) => {
+      const url = resolveRequestUrl(request);
+      if (url.includes('/api/default-plan') || url.includes('/v1/plan/default')) {
+        const nextPlan = planResponses.shift();
+        if (!nextPlan) {
+          return Promise.reject(new Error(`No plan response queued for ${url}`));
+        }
+        return nextPlan();
+      }
+      if (url.includes('/app/(seo)/fragment') || url.includes('/v1/fragment/')) {
+        const nextFragment = fragmentResponses.shift();
+        if (!nextFragment) {
+          return Promise.reject(new Error(`No fragment response queued for ${url}`));
+        }
+        return nextFragment();
+      }
+      return Promise.reject(new Error(`Unhandled fetch: ${url || 'unknown request'}`));
+    });
     (globalThis as unknown as { fetch?: unknown }).fetch = fetchMock as unknown as typeof fetch;
     process.env.NEXT_PUBLIC_EMBED_MODE = 'linked';
     process.env.NEXT_PUBLIC_CONFIG_URL = 'https://config.townthink.com/config/tenants/demo.json';
@@ -104,16 +209,8 @@ describe('SEO parity harness & host parity tests', () => {
 
   it('keeps rendered blocks inside the Shadow DOM (overlay isolation)', async () => {
     const plan = createPlan();
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        plan,
-        encodedPlan: 'encoded-plan',
-        planHash: 'hash',
-        updatedAt: plan.updatedAt
-      })
-    } as Response);
+    queuePlanSuccess(plan);
+    queueFragmentSuccesses();
 
     render(<Page />);
     await waitFor(() => {
@@ -127,12 +224,8 @@ describe('SEO parity harness & host parity tests', () => {
   });
 
   it('waits for plan readiness before painting routed content', async () => {
-    let resolvePlan: ((value: Response) => void) | null = null;
-    fetchMock.mockReturnValueOnce(
-      new Promise<Response>((resolve) => {
-        resolvePlan = resolve;
-      })
-    );
+    const pendingPlan = queuePlanPending();
+    queueFragmentSuccesses();
 
     render(<Page />);
 
@@ -141,7 +234,7 @@ describe('SEO parity harness & host parity tests', () => {
     expect(container?.shadowRoot?.querySelector('[data-root]')).toBeFalsy();
 
     const plan = createPlan();
-    resolvePlan?.({
+    pendingPlan.resolve({
       ok: true,
       status: 200,
       json: async () => ({

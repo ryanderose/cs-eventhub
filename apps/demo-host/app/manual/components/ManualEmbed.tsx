@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { EmbedConfig, EmbedHandle } from '@events-hub/embed-sdk';
 import type { PageDoc } from '@events-hub/page-schema';

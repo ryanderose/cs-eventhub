@@ -46,12 +46,13 @@ function normalizeTenantId(value?: string | null): string {
 }
 
 async function readUpstreamError(response: Response): Promise<string> {
+  const baseMessage = `Fragment request failed with status ${response.status}`;
   const contentType = response.headers.get('content-type') ?? '';
   if (contentType.includes('application/json')) {
     try {
       const payload = (await response.json()) as { error?: string };
       if (payload?.error) {
-        return payload.error;
+        return `${baseMessage}: ${payload.error}`;
       }
     } catch {
       // fall through to text handling
@@ -60,12 +61,12 @@ async function readUpstreamError(response: Response): Promise<string> {
   try {
     const text = await response.text();
     if (text.trim()) {
-      return text.trim();
+      return `${baseMessage}: ${text.trim()}`;
     }
   } catch {
     // ignore
   }
-  return `Fragment request failed with status ${response.status}.`;
+  return `${baseMessage}.`;
 }
 
 export async function GET(request: Request, { params }: { params: { tenant: string } }) {

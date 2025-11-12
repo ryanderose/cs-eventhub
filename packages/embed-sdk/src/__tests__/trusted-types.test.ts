@@ -37,7 +37,7 @@ describe('trusted types integration', () => {
     };
     const state = initializeTrustedTypes();
     const value = sanitizeWithTrustedTypes('<span>content</span>', state);
-    expect(value).toBe('trusted:<span>content');
+    expect(value).toBe('trusted:<span>content</span>');
     expect(policy.createHTML).toHaveBeenCalled();
   });
 });
